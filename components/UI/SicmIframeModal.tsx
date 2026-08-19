@@ -75,24 +75,15 @@ export default function SicmIframeModal({ open, onClose }: Props) {
             </div>
 
             {/* iframe */}
-            <div className="flex-1 relative">
+            <div className="flex-1 relative bg-white">
               <iframe
                 src={url}
                 title="SICM Church Management System"
                 className="w-full h-full border-0"
                 allow="fullscreen"
                 loading="lazy"
+                sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation allow-popups"
               />
-              {/* Fallback overlay shown if iframe is blocked */}
-              <noscript>
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-900">
-                  <p className="text-slate-400 text-sm">Preview unavailable.</p>
-                  <a href={url} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-2 btn-primary px-5 py-2.5 rounded-lg text-sm font-semibold">
-                    <ExternalLink size={15} /> Open in New Tab
-                  </a>
-                </div>
-              </noscript>
             </div>
           </motion.div>
         </motion.div>
