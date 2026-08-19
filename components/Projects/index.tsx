@@ -212,28 +212,6 @@ export default function Projects() {
             ))}
           </AnimatePresence>
         </motion.div>
-
-        {/* Portfolio CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="mt-12 glass-card rounded-2xl p-8 text-center"
-        >
-          <h3 className="text-slate-900 font-bold text-xl mb-2">🌐 Full Stack Developer Portfolio</h3>
-          <p className="text-slate-500 text-sm mb-4 max-w-xl mx-auto">
-            Explore my complete portfolio showcasing software engineering projects, full-stack applications, frontend interfaces, backend APIs, and database systems.
-          </p>
-          <a
-            href="https://queleminetech.info"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium"
-          >
-            <ExternalLink size={16} />
-            Visit queleminetech.info
-          </a>
-        </motion.div>
       </div>
       <SicmIframeModal open={sicmOpen} onClose={() => setSicmOpen(false)} />
     </section>

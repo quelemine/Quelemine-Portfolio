@@ -38,12 +38,12 @@ export default function Skills() {
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
                 whileHover={{ y: -4 }}
-                className="glass-card rounded-2xl p-6 hover:border-blue-500/30 transition-all duration-300 group"
+                className="glass-card rounded-2xl p-6 transition-all duration-300 group"
               >
                 {/* Card header */}
                 <div className="flex items-center gap-3 mb-5">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon size={22} className="text-white" />
+                  <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center group-hover:bg-blue-100 transition-colors duration-300">
+                    <Icon size={22} className="text-blue-600" />
                   </div>
                   <h3 className="text-slate-900 font-bold text-base">{cat.title}</h3>
                 </div>
