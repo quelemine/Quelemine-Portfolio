@@ -1,25 +1,37 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Code2 } from "lucide-react";
-
-const navLinks = [
-  { href: "#about",         label: "About" },
-  { href: "#education",     label: "Education" },
-  { href: "#skills",        label: "Skills" },
-  { href: "#projects",      label: "Projects" },
-  { href: "#contact",       label: "Contact" },
-];
+import { Menu, X, Code2, ChevronDown } from "lucide-react";
+import { useTranslation, LANGUAGES, type LocaleCode } from "@/context/LanguageContext";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [active, setActive] = useState("");
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+  const { t, locale, setLocale } = useTranslation();
+
+  const navLinks = [
+    { href: "#about",     label: t.nav.about },
+    { href: "#education", label: t.nav.education },
+    { href: "#skills",    label: t.nav.skills },
+    { href: "#projects",  label: t.nav.projects },
+    { href: "#contact",   label: t.nav.contact },
+  ];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   const handleNav = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -73,13 +85,52 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* CTA */}
+          {/* CTA + Language switcher */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Language switcher */}
+            <div className="relative" ref={langRef}>
+              <button
+                onClick={() => setLangOpen(!langOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/8 transition-all"
+              >
+                <span>{LANGUAGES.find((l) => l.code === locale)?.flag}</span>
+                <span className="text-xs font-medium">{locale.toUpperCase()}</span>
+                <ChevronDown size={13} className={`transition-transform duration-200 ${langOpen ? "rotate-180" : ""}`} />
+              </button>
+              <AnimatePresence>
+                {langOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-44 bg-[#0B1F3A] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50"
+                  >
+                    {LANGUAGES.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => { setLocale(lang.code as LocaleCode); setLangOpen(false); }}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                          locale === lang.code
+                            ? "bg-blue-500/20 text-blue-400"
+                            : "text-slate-300 hover:bg-white/8 hover:text-white"
+                        }`}
+                      >
+                        <span className="text-base">{lang.flag}</span>
+                        <span>{lang.label}</span>
+                        {locale === lang.code && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             <a
               href="#contact"
               className="btn-primary px-4 py-2 rounded-lg text-sm font-medium text-white"
             >
-              Hire Me
+              {t.nav.hireMe}
             </a>
           </div>
 
@@ -119,8 +170,28 @@ export default function Navbar() {
                 onClick={(e) => handleNav(e, "#contact")}
                 className="block mt-2 btn-primary px-3 py-2 rounded-lg text-sm font-medium text-white text-center"
               >
-                Hire Me
+                {t.nav.hireMe}
               </a>
+              {/* Mobile language picker */}
+              <div className="pt-2 border-t border-white/8 mt-2">
+                <p className="text-xs text-slate-500 px-3 mb-2">{t.language.label}</p>
+                <div className="grid grid-cols-3 gap-1">
+                  {LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => { setLocale(lang.code as LocaleCode); setMenuOpen(false); }}
+                      className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                        locale === lang.code
+                          ? "bg-blue-500/20 text-blue-400"
+                          : "text-slate-400 hover:bg-white/8 hover:text-white"
+                      }`}
+                    >
+                      <span>{lang.flag}</span>
+                      <span>{lang.code.toUpperCase()}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </motion.div>
         )}

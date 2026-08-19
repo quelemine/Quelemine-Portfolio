@@ -2,9 +2,11 @@
 import { motion } from "framer-motion";
 import { Code2, ArrowUp, Globe } from "lucide-react";
 import { FaGithub, FaLinkedin } from "react-icons/fa6";
+import { useTranslation } from "@/context/LanguageContext";
 
 export default function Footer() {
   const scrollTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  const { t } = useTranslation();
 
   return (
     <footer className="relative border-t border-white/8 bg-[#0B1F3A]">
@@ -19,13 +21,13 @@ export default function Footer() {
               <span className="font-bold text-white">Isaac L. Quelemine</span>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed">
-              Junior Software Engineer & Full Stack Developer. Building modern software solutions from Rwanda.
+              {t.footer.tagline}
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-white font-semibold text-sm mb-3">Quick Links</h4>
+            <h4 className="text-white font-semibold text-sm mb-3">{t.footer.quickLinks}</h4>
             <div className="grid grid-cols-2 gap-1">
               {["#about", "#education", "#skills", "#projects", "#communication", "#contact"].map((href) => (
                 <a
@@ -41,7 +43,7 @@ export default function Footer() {
 
           {/* Social */}
           <div>
-            <h4 className="text-white font-semibold text-sm mb-3">Connect</h4>
+            <h4 className="text-white font-semibold text-sm mb-3">{t.footer.connect}</h4>
             <div className="flex gap-3">
               {[
                 { icon: FaGithub, href: "https://github.com/quelemine", label: "GitHub" },
@@ -66,13 +68,13 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-white/8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-slate-400 text-sm">
-            © {new Date().getFullYear()} Isaac L. Quelemine. All rights reserved.
+            © {new Date().getFullYear()} Isaac L. Quelemine. {t.footer.rights}
           </p>
           <button
             onClick={scrollTop}
             className="flex items-center gap-2 text-slate-400 hover:text-blue-400 text-sm transition-colors group"
           >
-            Back to top
+            {t.footer.backToTop}
             <ArrowUp size={14} className="group-hover:-translate-y-1 transition-transform" />
           </button>
         </div>
