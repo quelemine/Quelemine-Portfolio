@@ -10,7 +10,7 @@ import zh from "@/locales/zh";
 export type LocaleCode = "en" | "fr" | "es" | "pt" | "ar" | "zh";
 
 export const LANGUAGES: { code: LocaleCode; label: string; flag: string; dir?: "rtl" }[] = [
-  { code: "en", label: "English",    flag: "🇬🇧" },
+  { code: "en", label: "English",    flag: "🇺🇸" },
   { code: "fr", label: "Français",   flag: "🇫🇷" },
   { code: "es", label: "Español",    flag: "🇪🇸" },
   { code: "pt", label: "Português",  flag: "🇧🇷" },
