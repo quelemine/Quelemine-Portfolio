@@ -1,7 +1,8 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Bot, User, MessageCircle } from "lucide-react";
+import { X, Send, User, MessageCircle } from "lucide-react";
+import Image from "next/image";
 import { FaWhatsapp } from "react-icons/fa6";
 
 interface Message {
@@ -140,7 +141,7 @@ export default function WhatsAppAgent() {
       {/* Floating button */}
       <motion.button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-green-500 hover:bg-green-400 flex items-center justify-center shadow-2xl shadow-green-500/40 transition-colors"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full overflow-hidden ring-2 ring-green-400 shadow-2xl shadow-green-500/40 transition-all hover:ring-green-300"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         initial={{ scale: 0, opacity: 0 }}
@@ -148,9 +149,9 @@ export default function WhatsAppAgent() {
         transition={{ delay: 2, type: "spring" }}
         aria-label="Chat with Isaac's AI assistant"
       >
-        <FaWhatsapp size={28} className="text-white" />
+        <Image src="/images/profile/isaac-profile.jpg" alt="Isaac" fill className="object-cover object-top" />
         {/* Pulse ring */}
-        <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-30" />
+        <span className="absolute inset-0 rounded-full ring-2 ring-green-400 animate-ping opacity-30" />
       </motion.button>
 
       {/* Chat window */}
@@ -166,8 +167,8 @@ export default function WhatsAppAgent() {
             {/* Header */}
             <div className="bg-gradient-to-r from-green-600 to-green-500 px-4 py-3 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-                  <Bot size={20} className="text-white" />
+                <div className="w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/30 flex-shrink-0">
+                  <Image src="/images/profile/isaac-profile.jpg" alt="Isaac" width={36} height={36} className="object-cover object-top w-full h-full" />
                 </div>
                 <div>
                   <p className="text-white font-semibold text-sm">{BOT_NAME}</p>
@@ -192,12 +193,10 @@ export default function WhatsAppAgent() {
                   key={msg.id}
                   className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
                 >
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    msg.role === "bot" ? "bg-green-500/20" : "bg-blue-500/20"
-                  }`}>
+                  <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
                     {msg.role === "bot"
-                      ? <Bot size={14} className="text-green-400" />
-                      : <User size={14} className="text-blue-400" />
+                      ? <Image src="/images/profile/isaac-profile.jpg" alt="Isaac" width={28} height={28} className="object-cover object-top w-full h-full" />
+                      : <div className="w-full h-full bg-blue-500/20 flex items-center justify-center"><User size={14} className="text-blue-400" /></div>
                     }
                   </div>
                   <div className={`max-w-[78%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
@@ -213,8 +212,8 @@ export default function WhatsAppAgent() {
               {/* Typing indicator */}
               {typing && (
                 <div className="flex items-end gap-2">
-                  <div className="w-7 h-7 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <Bot size={14} className="text-green-400" />
+                  <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+                    <Image src="/images/profile/isaac-profile.jpg" alt="Isaac" width={28} height={28} className="object-cover object-top w-full h-full" />
                   </div>
                   <div className="bg-slate-800 px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1">
                     {[0, 1, 2].map((i) => (
