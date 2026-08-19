@@ -20,7 +20,7 @@
  */
 
 export const IMAGES = {
-  profile: "/images/profile/isaac-profile.jpg",
+  profile: "/images/profile/isaac-profile-four.jpeg",
 
   projects: {
     1: "/images/projects/project-1.svg",
@@ -33,7 +33,7 @@ export const IMAGES = {
   },
 
   // Social preview image (used in OpenGraph / Twitter card)
-  socialPreview: "/images/profile/isaac-profile.jpg",
+  socialPreview: "/images/profile/isaac-profile-four.jpeg",
 } as const;
 
 export const PROFILE_ALT = "Isaac L. Quelemine — Junior Software Engineer & Full Stack Developer";
