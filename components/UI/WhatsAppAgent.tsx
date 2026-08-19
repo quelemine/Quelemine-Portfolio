@@ -169,7 +169,7 @@ export default function WhatsAppAgent() {
             <div className="bg-gradient-to-r from-green-600 to-green-500 px-4 py-3 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/30 flex-shrink-0">
-                  <Image src={IMAGES.profile} alt="Isaac" width={36} height={36} className="object-cover object-top w-full h-full" />
+                  <Image src="/images/profile/isaac-profile.jpg" alt="Isaac" width={36} height={36} className="object-cover object-top w-full h-full" />
                 </div>
                 <div>
                   <p className="text-white font-semibold text-sm">{BOT_NAME}</p>
