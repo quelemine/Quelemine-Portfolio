@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Code2, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
+import Image from "next/image";
 import { useTranslation, LANGUAGES, type LocaleCode } from "@/context/LanguageContext";
 
 export default function Navbar() {
@@ -59,8 +60,8 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <a href="#home" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-blue-500/30 transition-all duration-300">
-              <Code2 size={16} className="text-white" />
+            <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-blue-500/50 group-hover:ring-blue-400 transition-all duration-300">
+              <Image src="/images/profile/isaac-profile-four.jpeg" alt="Isaac" width={32} height={32} className="object-cover object-top w-full h-full" />
             </div>
             <span className="font-bold text-white text-sm hidden sm:block">
               Isaac<span className="text-blue-400">.dev</span>
