@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, MessageCircle, ArrowRight } from "lucide-react";
+import { X, Send, MessageCircle, ArrowRight, Bot } from "lucide-react";
 import Image from "next/image";
 import { IMAGES } from "@/lib/images";
 import { FaWhatsapp } from "react-icons/fa6";
@@ -147,7 +147,7 @@ export default function WhatsAppAgent() {
       {/* Floating button */}
       <motion.button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full overflow-hidden ring-2 ring-green-400 shadow-2xl shadow-green-500/40 transition-all hover:ring-green-300"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-green-500 hover:bg-green-400 flex items-center justify-center shadow-2xl shadow-green-500/40 transition-all"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         initial={{ scale: 0, opacity: 0 }}
@@ -155,8 +155,8 @@ export default function WhatsAppAgent() {
         transition={{ delay: 2, type: "spring" }}
         aria-label="Chat with Isaac's AI assistant"
       >
-        <Image src={IMAGES.profile} alt="Isaac" fill className="object-cover object-top" />
-        <span className="absolute inset-0 rounded-full ring-2 ring-green-400 animate-ping opacity-30" />
+        <FaWhatsapp size={28} className="text-white" />
+        <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-30" />
       </motion.button>
 
       {/* Chat window */}
@@ -192,8 +192,8 @@ export default function WhatsAppAgent() {
             {!userName ? (
               <div className="flex-1 bg-[#0a0f1e] flex flex-col items-center justify-center p-8 gap-6">
                 <div className="text-center">
-                  <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-green-500/40 mx-auto mb-4">
-                    <Image src="/images/profile/isaac-profile.jpg" alt="Isaac" width={64} height={64} className="object-cover object-top w-full h-full" />
+                  <div className="w-16 h-16 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center mx-auto mb-4">
+                    <Bot size={32} className="text-green-400" />
                   </div>
                   <p className="text-white font-semibold text-base">Welcome! 👋</p>
                   <p className="text-slate-400 text-sm mt-1">What&apos;s your name so I can greet you properly?</p>
