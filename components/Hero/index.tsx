@@ -1,7 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { Download, Mail, FolderOpen, MapPin } from "lucide-react";
-import ProfileImage from "@/components/UI/ProfileImage";
+import Image from "next/image";
 import { useTranslation } from "@/context/LanguageContext";
 
 export default function Hero() {
@@ -111,7 +111,7 @@ export default function Hero() {
 
               {/* Profile circle */}
               <div className="relative w-64 h-72 sm:w-72 sm:h-80 lg:w-80 lg:h-[22rem] rounded-[50%] profile-glow overflow-hidden ring-2 ring-blue-500/30 hover:ring-blue-400/50 transition-all duration-500">
-                <ProfileImage priority size={360} />
+                <Image src="/images/profile/isaac-profile.jpg" alt="Isaac L. Quelemine" fill className="object-cover object-top" priority />
               </div>
 
               {/* Status badge */}
