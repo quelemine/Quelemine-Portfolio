@@ -5,7 +5,7 @@ import { useRef } from "react";
 import { Globe } from "lucide-react";
 
 const languages = [
-  { name: "English", level: "Professional Fluency", flag: "🇬🇧", proficiency: 95, color: "from-blue-500 to-blue-600", badge: "Professional" },
+  { name: "English", level: "Professional Fluency", flag: "🇺🇸", proficiency: 95, color: "from-blue-500 to-blue-600", badge: "Professional" },
   { name: "Kpelle", level: "Native Language / Mother Tongue", flag: "🇱🇷", proficiency: 100, color: "from-red-500 to-red-600", badge: "Native" },
   { name: "French", level: "Basic Knowledge", flag: "🇫🇷", proficiency: 30, color: "from-indigo-500 to-indigo-600", badge: "Basic" },
   { name: "Turkish", level: "Basic Knowledge", flag: "🇹🇷", proficiency: 25, color: "from-red-600 to-orange-500", badge: "Basic" },
