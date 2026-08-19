@@ -40,8 +40,8 @@ export default function About() {
             className="flex flex-col items-center lg:items-start gap-6"
           >
             {/* Profile photo */}
-            <div className="relative w-52 h-52 rounded-2xl overflow-hidden ring-1 ring-blue-500/25 profile-glow flex-shrink-0">
-              <ProfileImage size={208} />
+            <div className="relative w-52 h-60 rounded-2xl overflow-hidden ring-1 ring-blue-500/25 profile-glow flex-shrink-0">
+              <ProfileImage size={240} />
             </div>
 
             {/* Quick facts */}

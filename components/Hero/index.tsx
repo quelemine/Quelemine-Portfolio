@@ -109,8 +109,8 @@ export default function Hero() {
               <div className="absolute -inset-3 rounded-full bg-blue-500/8 blur-2xl" />
 
               {/* Profile circle */}
-              <div className="relative w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full profile-glow overflow-hidden ring-2 ring-blue-500/30 hover:ring-blue-400/50 transition-all duration-500">
-                <ProfileImage priority size={320} />
+              <div className="relative w-64 h-72 sm:w-72 sm:h-80 lg:w-80 lg:h-[22rem] rounded-[50%] profile-glow overflow-hidden ring-2 ring-blue-500/30 hover:ring-blue-400/50 transition-all duration-500">
+                <ProfileImage priority size={360} />
               </div>
 
               {/* Status badge */}

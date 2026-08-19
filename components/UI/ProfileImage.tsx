@@ -45,7 +45,7 @@ export default function ProfileImage({
       alt={PROFILE_ALT}
       width={size}
       height={size}
-      className={`w-full h-full object-cover object-center ${className}`}
+      className={`w-full h-full object-cover object-top ${className}`}
       priority={priority}
       onError={() => setError(true)}
     />
