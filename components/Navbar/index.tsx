@@ -38,8 +38,10 @@ export default function Navbar() {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "glass border-b border-white/5 shadow-lg shadow-black/20" : "bg-transparent"
-      }`}
+        scrolled
+          ? "shadow-lg shadow-black/20 border-b border-white/8"
+          : ""
+      } bg-[#0B1F3A]`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -49,7 +51,7 @@ export default function Navbar() {
               <Code2 size={16} className="text-white" />
             </div>
             <span className="font-bold text-white text-sm hidden sm:block">
-              Isaac<span className="gradient-text-blue">.dev</span>
+              Isaac<span className="text-blue-400">.dev</span>
             </span>
           </a>
 
@@ -62,8 +64,8 @@ export default function Navbar() {
                 onClick={(e) => handleNav(e, link.href)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   active === link.href
-                    ? "text-blue-400 bg-blue-500/10"
-                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                    ? "text-blue-400 bg-blue-500/15"
+                    : "text-slate-300 hover:text-white hover:bg-white/8"
                 }`}
               >
                 {link.label}
@@ -84,7 +86,7 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+            className="md:hidden p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/8 transition-all"
           >
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -99,7 +101,7 @@ export default function Navbar() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden glass border-t border-white/5"
+            className="md:hidden bg-[#0B1F3A] border-t border-white/8"
           >
             <div className="px-4 py-3 space-y-1">
               {navLinks.map((link) => (
@@ -107,7 +109,7 @@ export default function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={(e) => handleNav(e, link.href)}
-                  className="block px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                  className="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/8 transition-all"
                 >
                   {link.label}
                 </a>

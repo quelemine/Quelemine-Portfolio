@@ -21,9 +21,9 @@ export default function SocialLinks() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <span className="text-blue-400 text-sm font-semibold tracking-widest uppercase mb-3 block">Stay Connected</span>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white section-title">Connect With Me</h2>
-          <p className="text-slate-400 mt-6 max-w-xl mx-auto text-sm">
+          <span className="text-blue-600 text-sm font-semibold tracking-widest uppercase mb-3 block">Stay Connected</span>
+          <h2 className="text-3xl sm:text-4xl font-bold section-title">Connect With Me</h2>
+          <p className="text-slate-500 mt-6 max-w-xl mx-auto text-sm">
             Let&apos;s connect on social media and build a professional network together.
           </p>
         </motion.div>

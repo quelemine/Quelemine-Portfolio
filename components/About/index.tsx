@@ -55,10 +55,10 @@ export default function About() {
                   className="flex items-start gap-3"
                 >
                   <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <item.icon size={15} className="text-blue-400" />
+                    <item.icon size={15} className="text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-white text-xs font-semibold">{item.label}</p>
+                    <p className="text-slate-800 text-xs font-semibold">{item.label}</p>
                     <p className="text-slate-500 text-xs mt-0.5">{item.desc}</p>
                   </div>
                 </motion.div>
@@ -73,10 +73,10 @@ export default function About() {
             transition={{ duration: 0.6, delay: 0.15 }}
             className="space-y-5"
           >
-            <div className="space-y-4 text-slate-400 text-[0.9375rem] leading-[1.8]">
+            <div className="space-y-4 text-slate-600 text-[0.9375rem] leading-[1.8]">
               <p>
-                I am a <span className="text-white font-medium">Liberian Junior Software Engineer</span> currently
-                based in <span className="text-blue-400">Kigali, Rwanda</span>. I am passionate about building
+                I am a <span className="text-slate-900 font-medium">Liberian Junior Software Engineer</span> currently
+                based in <span className="text-blue-600">Kigali, Rwanda</span>. I am passionate about building
                 scalable software solutions and solving real-world problems through technology.
               </p>
               <p>
@@ -85,7 +85,7 @@ export default function About() {
                 multicultural environments.
               </p>
               <p>
-                I specialize in <span className="text-white font-medium">full-stack development</span>, working
+                I specialize in <span className="text-slate-900 font-medium">full-stack development</span>, working
                 across the entire stack with React.js on the frontend, Java and Spring Boot on the backend,
                 and MySQL and PostgreSQL for data management. I am committed to writing clean, maintainable
                 code that delivers real value.

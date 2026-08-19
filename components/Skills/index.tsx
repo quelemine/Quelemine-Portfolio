@@ -14,7 +14,7 @@ export default function Skills() {
   return (
     <section id="skills" className="section-padding relative" ref={ref}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/3 rounded-full blur-3xl" />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -24,8 +24,8 @@ export default function Skills() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <span className="text-blue-400 text-sm font-semibold tracking-widest uppercase mb-3 block">What I Work With</span>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white section-title">Technical Skills</h2>
+          <span className="text-blue-600 text-sm font-semibold tracking-widest uppercase mb-3 block">What I Work With</span>
+          <h2 className="text-3xl sm:text-4xl font-bold section-title">Technical Skills</h2>
         </motion.div>
 
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -45,7 +45,7 @@ export default function Skills() {
                   <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                     <Icon size={22} className="text-white" />
                   </div>
-                  <h3 className="text-white font-bold text-base">{cat.title}</h3>
+                  <h3 className="text-slate-900 font-bold text-base">{cat.title}</h3>
                 </div>
 
                 {/* Skills */}
@@ -56,7 +56,7 @@ export default function Skills() {
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={inView ? { opacity: 1, scale: 1 } : {}}
                       transition={{ duration: 0.3, delay: i * 0.1 + j * 0.04 }}
-                      className="skill-badge px-3 py-1 rounded-full text-xs text-slate-300 cursor-default"
+                      className="skill-badge px-3 py-1 rounded-full text-xs cursor-default"
                     >
                       {skill}
                     </motion.span>
@@ -74,10 +74,10 @@ export default function Skills() {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="mt-12 glass-card rounded-2xl p-6 text-center"
         >
-          <p className="text-slate-400 text-sm mb-4">Core Technology Stack</p>
+          <p className="text-slate-500 text-sm mb-4">Core Technology Stack</p>
           <div className="flex flex-wrap justify-center gap-3">
             {["React.js", "Java", "Spring Boot", "PHP", "MySQL", "PostgreSQL", "JavaScript", "HTML5", "CSS3", "Git", "Linux", "REST APIs"].map((tech) => (
-              <span key={tech} className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 text-blue-300 text-sm font-medium hover:border-blue-400/40 transition-all">
+              <span key={tech} className="px-4 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-sm font-medium hover:border-blue-400 hover:bg-blue-100 transition-all">
                 {tech}
               </span>
             ))}

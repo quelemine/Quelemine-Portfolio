@@ -7,12 +7,12 @@ export default function Hero() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden grid-pattern"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden grid-pattern bg-[#0B1F3A]"
     >
       {/* Subtle background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-blue-600/6 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-blue-800/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-blue-600/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-blue-800/6 rounded-full blur-3xl" />
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 lg:px-8 py-24">
@@ -26,7 +26,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 glass px-4 py-2 rounded-full text-sm text-slate-400 mb-8"
+              className="inline-flex items-center gap-2 glass px-4 py-2 rounded-full text-sm text-slate-300 mb-8"
             >
               <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
               <MapPin size={13} className="text-blue-400" />
@@ -41,7 +41,7 @@ export default function Hero() {
               className="text-5xl sm:text-6xl font-bold text-white mb-3 leading-[1.1] tracking-tight"
             >
               Isaac L.{" "}
-              <span className="gradient-text">Quelemine</span>
+              <span className="gradient-text-hero">Quelemine</span>
             </motion.h1>
 
             {/* Title */}
@@ -59,7 +59,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="text-slate-400 text-base leading-relaxed mb-10 max-w-lg mx-auto lg:mx-0"
+              className="text-slate-300 text-base leading-relaxed mb-10 max-w-lg mx-auto lg:mx-0"
             >
               Building modern web applications and software solutions with strong foundations in
               frontend development, backend engineering, databases, and software architecture.
@@ -82,14 +82,14 @@ export default function Hero() {
               <a
                 href="/resume.pdf"
                 download
-                className="btn-outline inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold"
+                className="btn-outline-white inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold"
               >
                 <Download size={16} />
                 Download CV
               </a>
               <a
                 href="#contact"
-                className="btn-outline inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold"
+                className="btn-outline-white inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold"
               >
                 <Mail size={16} />
                 Contact Me
@@ -115,7 +115,7 @@ export default function Hero() {
 
               {/* Status badge */}
               <motion.div
-                className="absolute -bottom-3 left-1/2 -translate-x-1/2 glass px-4 py-1.5 rounded-full text-xs text-green-400 font-medium border border-green-500/20 whitespace-nowrap"
+                className="absolute -bottom-3 left-1/2 -translate-x-1/2 glass px-4 py-1.5 rounded-full text-xs text-green-400 font-medium border border-green-500/25 whitespace-nowrap"
                 animate={{ y: [0, -4, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               >
@@ -136,7 +136,7 @@ export default function Hero() {
           <motion.div
             animate={{ y: [0, 6, 0] }}
             transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-5 h-8 rounded-full border border-slate-700 flex items-start justify-center pt-1.5"
+            className="w-5 h-8 rounded-full border border-white/20 flex items-start justify-center pt-1.5"
           >
             <div className="w-1 h-2 bg-blue-400 rounded-full" />
           </motion.div>

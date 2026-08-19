@@ -12,10 +12,10 @@ export default function Education() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section id="education" className="section-padding relative" ref={ref}>
+    <section id="education" className="section-padding relative section-alt" ref={ref}>
       {/* Background accent */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/2 right-0 w-96 h-96 bg-indigo-600/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 right-0 w-96 h-96 bg-blue-600/4 rounded-full blur-3xl" />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -25,8 +25,8 @@ export default function Education() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <span className="text-blue-400 text-sm font-semibold tracking-widest uppercase mb-3 block">Academic Background</span>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white section-title">Education</h2>
+          <span className="text-blue-600 text-sm font-semibold tracking-widest uppercase mb-3 block">Academic Background</span>
+          <h2 className="text-3xl sm:text-4xl font-bold section-title">Education</h2>
         </motion.div>
 
         <div className="relative max-w-4xl mx-auto">
@@ -57,8 +57,8 @@ export default function Education() {
                           <Icon size={18} className="text-white" />
                         </div>
                         <div>
-                          <h3 className="text-white font-bold text-lg leading-tight">{edu.degree}</h3>
-                          <p className="text-blue-400 font-medium mt-1">{edu.institution}</p>
+                  <h3 className="text-slate-900 font-bold text-lg leading-tight">{edu.degree}</h3>
+                          <p className="text-blue-600 font-medium mt-1">{edu.institution}</p>
                         </div>
                       </div>
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
@@ -73,16 +73,16 @@ export default function Education() {
 
                     <div className="flex flex-wrap gap-4 text-sm text-slate-500 mb-3">
                       <span className="flex items-center gap-1.5">
-                        <MapPin size={14} className="text-slate-600" />
+                        <MapPin size={14} className="text-slate-400" />
                         {edu.location}
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <Calendar size={14} className="text-slate-600" />
+                        <Calendar size={14} className="text-slate-400" />
                         {edu.period}
                       </span>
                     </div>
 
-                    <p className="text-slate-400 text-sm leading-relaxed">{edu.description}</p>
+                    <p className="text-slate-600 text-sm leading-relaxed">{edu.description}</p>
                   </div>
                 </motion.div>
               );

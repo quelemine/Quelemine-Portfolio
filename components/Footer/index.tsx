@@ -7,7 +7,7 @@ export default function Footer() {
   const scrollTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   return (
-    <footer className="relative border-t border-white/5 bg-slate-950/50">
+    <footer className="relative border-t border-white/8 bg-[#0B1F3A]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid md:grid-cols-3 gap-8 mb-8">
           {/* Brand */}
@@ -18,7 +18,7 @@ export default function Footer() {
               </div>
               <span className="font-bold text-white">Isaac L. Quelemine</span>
             </div>
-            <p className="text-slate-500 text-sm leading-relaxed">
+            <p className="text-slate-400 text-sm leading-relaxed">
               Junior Software Engineer & Full Stack Developer. Building modern software solutions from Rwanda.
             </p>
           </div>
@@ -31,7 +31,7 @@ export default function Footer() {
                 <a
                   key={href}
                   href={href}
-                  className="text-slate-500 hover:text-blue-400 text-sm transition-colors capitalize"
+                  className="text-slate-400 hover:text-blue-400 text-sm transition-colors capitalize"
                 >
                   {href.replace("#", "")}
                 </a>
@@ -54,7 +54,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={s.label}
-                  className="w-9 h-9 rounded-lg glass flex items-center justify-center text-slate-400 hover:text-blue-400 hover:border-blue-500/30 transition-all"
+                  className="w-9 h-9 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center text-slate-400 hover:text-blue-400 hover:border-blue-500/40 hover:bg-blue-500/10 transition-all"
                 >
                   <s.icon size={16} />
                 </a>
@@ -64,13 +64,13 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-slate-500 text-sm">
+        <div className="border-t border-white/8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-slate-400 text-sm">
             © {new Date().getFullYear()} Isaac L. Quelemine. All rights reserved.
           </p>
           <button
             onClick={scrollTop}
-            className="flex items-center gap-2 text-slate-500 hover:text-blue-400 text-sm transition-colors group"
+            className="flex items-center gap-2 text-slate-400 hover:text-blue-400 text-sm transition-colors group"
           >
             Back to top
             <ArrowUp size={14} className="group-hover:-translate-y-1 transition-transform" />

@@ -2,23 +2,30 @@
 
 /* ─── Design Tokens ─────────────────────────────────────────── */
 :root {
-  --navy:        #0b1120;
-  --navy-mid:    #111827;
-  --navy-card:   #141e2e;
-  --navy-border: rgba(255,255,255,0.07);
-  --accent:      #3b82f6;        /* single blue accent */
-  --accent-dim:  rgba(59,130,246,0.12);
-  --accent-glow: rgba(59,130,246,0.20);
-  --text-primary:   #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted:     #475569;
+  --navy:          #0B1F3A;
+  --navy-dark:     #071529;
+  --accent:        #2563EB;
+  --accent-hover:  #1D4ED8;
+  --accent-dim:    rgba(37,99,235,0.10);
+  --accent-glow:   rgba(37,99,235,0.20);
+
+  --bg-body:       #F8FAFC;
+  --bg-section-alt:#F1F5F9;
+  --bg-card:       #FFFFFF;
+
+  --text-primary:   #0F172A;
+  --text-secondary: #64748B;
+  --text-muted:     #94A3B8;
+
+  --border:        #E2E8F0;
+  --border-hover:  rgba(37,99,235,0.30);
 }
 
 /* ─── Base ───────────────────────────────────────────────────── */
 * { scroll-behavior: smooth; box-sizing: border-box; }
 
 body {
-  background-color: var(--navy);
+  background-color: var(--bg-body);
   color: var(--text-primary);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   font-size: 1rem;
@@ -42,13 +49,21 @@ p, span, a, li, label, input, textarea, button {
 
 /* ─── Scrollbar ──────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: var(--navy); }
-::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 3px; }
+::-webkit-scrollbar-track { background: var(--bg-body); }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
 /* ─── Typography ─────────────────────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, #60a5fa 0%, #93c5fd 100%);
+  background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Hero gradient text — stays readable on dark bg */
+.gradient-text-hero {
+  background: linear-gradient(135deg, #60A5FA 0%, #93C5FD 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -79,7 +94,7 @@ p, span, a, li, label, input, textarea, button {
   content: '';
   display: block;
   width: 40px;
-  height: 2px;
+  height: 3px;
   background: var(--accent);
   margin: 0.75rem auto 0;
   border-radius: 2px;
@@ -98,6 +113,9 @@ p, span, a, li, label, input, textarea, button {
 /* ─── Layout ────────────────────────────────────────────────── */
 .section-padding { padding: 5rem 0; }
 
+/* Alternate section background for visual rhythm */
+.section-alt { background-color: var(--bg-section-alt); }
+
 .container-base {
   max-width: 72rem;
   margin-left: auto;
@@ -108,23 +126,38 @@ p, span, a, li, label, input, textarea, button {
 
 /* ─── Cards ──────────────────────────────────────────────────── */
 .card {
-  background: var(--navy-card);
-  border: 1px solid var(--navy-border);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 0.875rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card:hover {
-  border-color: rgba(59,130,246,0.25);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+  border-color: var(--border-hover);
+  box-shadow: 0 8px 24px rgba(37,99,235,0.08), 0 2px 8px rgba(0,0,0,0.06);
 }
 
-/* Glass — used sparingly for navbar/overlays only */
+/* glass-card — used in all section components */
+.glass-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 8px 24px rgba(37,99,235,0.08), 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* glass — navbar / overlays only (stays dark) */
 .glass {
-  background: rgba(11,17,32,0.75);
+  background: rgba(11,31,58,0.92);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--navy-border);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 /* ─── Buttons ────────────────────────────────────────────────── */
@@ -135,33 +168,48 @@ p, span, a, li, label, input, textarea, button {
   transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 }
 .btn-primary:hover {
-  background: #2563eb;
-  box-shadow: 0 0 20px var(--accent-glow);
+  background: var(--accent-hover);
+  box-shadow: 0 4px 16px var(--accent-glow);
   transform: translateY(-1px);
 }
 
 .btn-outline {
   background: transparent;
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid var(--border);
   color: var(--text-secondary);
-  transition: border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, transform 0.15s ease;
 }
 .btn-outline:hover {
   border-color: var(--accent);
-  color: var(--text-primary);
+  color: var(--accent);
+  background: var(--accent-dim);
+  transform: translateY(-1px);
+}
+
+/* btn-outline-white — for dark (hero/navbar) backgrounds */
+.btn-outline-white {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.80);
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+.btn-outline-white:hover {
+  border-color: rgba(255,255,255,0.60);
+  color: #fff;
+  background: rgba(255,255,255,0.08);
   transform: translateY(-1px);
 }
 
 /* ─── Skill badge ────────────────────────────────────────────── */
 .skill-badge {
   background: var(--accent-dim);
-  border: 1px solid rgba(59,130,246,0.18);
-  color: #93c5fd;
+  border: 1px solid rgba(37,99,235,0.18);
+  color: #1D4ED8;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 .skill-badge:hover {
-  background: rgba(59,130,246,0.2);
-  border-color: rgba(59,130,246,0.35);
+  background: rgba(37,99,235,0.16);
+  border-color: rgba(37,99,235,0.35);
 }
 
 /* ─── Timeline ───────────────────────────────────────────────── */
@@ -170,16 +218,17 @@ p, span, a, li, label, input, textarea, button {
 }
 
 /* ─── Background patterns ────────────────────────────────────── */
+/* Hero keeps dark navy bg with subtle grid */
 .grid-pattern {
   background-image:
-    linear-gradient(rgba(59,130,246,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59,130,246,0.025) 1px, transparent 1px);
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
   background-size: 60px 60px;
 }
 
 /* ─── Profile image glow ─────────────────────────────────────── */
 .profile-glow {
-  box-shadow: 0 0 0 1px rgba(59,130,246,0.3), 0 0 40px rgba(59,130,246,0.12);
+  box-shadow: 0 0 0 1px rgba(37,99,235,0.35), 0 0 40px rgba(37,99,235,0.15);
 }
 
 /* ─── Animations ─────────────────────────────────────────────── */
@@ -188,9 +237,9 @@ p, span, a, li, label, input, textarea, button {
   50%       { transform: translateY(-10px); }
 }
 @keyframes pulse-ring {
-  0%   { box-shadow: 0 0 0 0 rgba(59,130,246,0.35); }
-  70%  { box-shadow: 0 0 0 12px rgba(59,130,246,0); }
-  100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+  0%   { box-shadow: 0 0 0 0 rgba(37,99,235,0.35); }
+  70%  { box-shadow: 0 0 0 12px rgba(37,99,235,0); }
+  100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); }
 }
 
 .animate-float      { animation: float 5s ease-in-out infinite; }

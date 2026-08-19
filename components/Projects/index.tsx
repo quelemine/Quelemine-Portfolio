@@ -43,16 +43,16 @@ export default function Projects() {
   const isSicm = (id: number) => id === 7;
 
   const categoryColors: Record<string, string> = {
-    frontend: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-    backend: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
-    fullstack: "text-teal-400 bg-teal-500/10 border-teal-500/20",
-    database: "text-orange-400 bg-orange-500/10 border-orange-500/20",
+    frontend: "text-blue-700 bg-blue-50 border-blue-200",
+    backend: "text-indigo-700 bg-indigo-50 border-indigo-200",
+    fullstack: "text-teal-700 bg-teal-50 border-teal-200",
+    database: "text-orange-700 bg-orange-50 border-orange-200",
   };
 
   return (
-    <section id="projects" className="section-padding relative" ref={ref}>
+    <section id="projects" className="section-padding relative section-alt" ref={ref}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-600/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/3 rounded-full blur-3xl" />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -62,8 +62,8 @@ export default function Projects() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <span className="text-blue-400 text-sm font-semibold tracking-widest uppercase mb-3 block">What I&apos;ve Built</span>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white section-title">Featured Projects</h2>
+          <span className="text-blue-600 text-sm font-semibold tracking-widest uppercase mb-3 block">What I&apos;ve Built</span>
+          <h2 className="text-3xl sm:text-4xl font-bold section-title">Featured Projects</h2>
         </motion.div>
 
         {/* Filters */}
@@ -79,8 +79,8 @@ export default function Projects() {
               onClick={() => setActive(f.id as ProjectCategory)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                 active === f.id
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
-                  : "glass text-slate-400 hover:text-white hover:bg-white/5"
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                  : "bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-300"
               }`}
             >
               {f.label}
@@ -100,13 +100,13 @@ export default function Projects() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.3, delay: i * 0.06 }}
                 whileHover={{ y: -6 }}
-                className="glass-card rounded-2xl overflow-hidden group hover:border-blue-500/30 transition-all duration-300"
+                className="glass-card rounded-2xl overflow-hidden group transition-all duration-300"
               >
                 {/* Project image */}
-                <div className="relative h-44 bg-gradient-to-br from-slate-800 to-slate-900 overflow-hidden">
+                <div className="relative h-44 bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
                   <ProjectThumbnail project={project} priority={i === 0} />
                   {/* Overlay on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4 gap-3">
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4 gap-3">
                     {project.github && (
                       <a
                         href={project.github}
@@ -152,18 +152,18 @@ export default function Projects() {
 
                 {/* Content */}
                 <div className="p-5">
-                  <h3 className="text-white font-bold text-base mb-2">{project.title}</h3>
-                  <p className="text-slate-400 text-sm leading-relaxed mb-4 line-clamp-2">{project.description}</p>
+                  <h3 className="text-slate-900 font-bold text-base mb-2">{project.title}</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed mb-4 line-clamp-2">{project.description}</p>
 
                   {/* Tech stack */}
                   <div className="flex flex-wrap gap-1.5 mb-4">
                     {project.technologies.slice(0, 4).map((tech) => (
-                      <span key={tech} className="px-2 py-0.5 rounded text-xs bg-blue-500/10 text-blue-300 border border-blue-500/15">
+                      <span key={tech} className="px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700 border border-blue-200">
                         {tech}
                       </span>
                     ))}
                     {project.technologies.length > 4 && (
-                      <span className="px-2 py-0.5 rounded text-xs text-slate-500">+{project.technologies.length - 4}</span>
+                      <span className="px-2 py-0.5 rounded text-xs text-slate-400">+{project.technologies.length - 4}</span>
                     )}
                   </div>
 
@@ -174,7 +174,7 @@ export default function Projects() {
                         href={project.github}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-slate-400 hover:text-white text-xs transition-colors"
+                        className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-xs transition-colors"
                       >
                         <FaGithub size={14} /> Code
                       </a>
@@ -183,7 +183,7 @@ export default function Projects() {
                       <>
                         <button
                           onClick={() => setSicmOpen(true)}
-                          className="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 text-xs transition-colors"
+                          className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs transition-colors"
                         >
                           <Monitor size={14} /> Preview
                         </button>
@@ -191,7 +191,7 @@ export default function Projects() {
                           href={project.demo}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-slate-400 hover:text-white text-xs transition-colors"
+                          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-xs transition-colors"
                         >
                           <ExternalLink size={14} /> Open Site
                         </a>
@@ -201,7 +201,7 @@ export default function Projects() {
                         href={project.demo}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 text-xs transition-colors"
+                        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs transition-colors"
                       >
                         <ExternalLink size={14} /> {project.github ? "Live Demo" : "View Project"}
                       </a>
@@ -220,8 +220,8 @@ export default function Projects() {
           transition={{ duration: 0.6, delay: 0.5 }}
           className="mt-12 glass-card rounded-2xl p-8 text-center"
         >
-          <h3 className="text-white font-bold text-xl mb-2">🌐 Full Stack Developer Portfolio</h3>
-          <p className="text-slate-400 text-sm mb-4 max-w-xl mx-auto">
+          <h3 className="text-slate-900 font-bold text-xl mb-2">🌐 Full Stack Developer Portfolio</h3>
+          <p className="text-slate-500 text-sm mb-4 max-w-xl mx-auto">
             Explore my complete portfolio showcasing software engineering projects, full-stack applications, frontend interfaces, backend APIs, and database systems.
           </p>
           <a
