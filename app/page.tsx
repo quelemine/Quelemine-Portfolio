@@ -8,6 +8,7 @@ import Communication from "@/components/Communication";
 import Languages from "@/components/Languages";
 import GithubStats from "@/components/GithubStats";
 import SocialLinks from "@/components/SocialLinks";
+import WorkTogether from "@/components/WorkTogether";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import WhatsAppAgent from "@/components/UI/WhatsAppAgent";
@@ -26,6 +27,7 @@ export default function Home() {
       <Languages />
       <GithubStats />
       <SocialLinks />
+      <WorkTogether />
       <Contact />
       <Footer />
       <WhatsAppAgent />

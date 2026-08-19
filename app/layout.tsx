@@ -3,6 +3,7 @@ import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import { IMAGES, PROFILE_ALT } from "@/lib/images";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { ChatProvider } from "@/context/ChatContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -65,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${inter.variable} ${manrope.variable} antialiased`}>
-        <LanguageProvider>{children}</LanguageProvider>
+        <LanguageProvider><ChatProvider>{children}</ChatProvider></LanguageProvider>
       </body>
     </html>
   );

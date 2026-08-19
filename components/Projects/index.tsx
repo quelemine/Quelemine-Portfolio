@@ -1,11 +1,12 @@
 "use client";
 import { useState, useRef } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
-import { ExternalLink, FolderOpen, Monitor } from "lucide-react";
+import { ExternalLink, FolderOpen, Monitor, MessageSquare } from "lucide-react";
 import { FaGithub } from "react-icons/fa6";
 import Image from "next/image";
 import { projects, projectFilters, type ProjectCategory } from "@/data/projects";
 import SicmIframeModal from "@/components/UI/SicmIframeModal";
+import { useChatContext } from "@/context/ChatContext";
 
 function ProjectThumbnail({ project, priority = false }: { project: (typeof projects)[number]; priority?: boolean }) {
   const [imgError, setImgError] = useState(false);
@@ -37,6 +38,7 @@ export default function Projects() {
   const [sicmOpen, setSicmOpen] = useState(false);
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
+  const { openWithMessage } = useChatContext();
 
   const filtered = active === "all" ? projects : projects.filter((p) => p.category === active);
 
@@ -167,45 +169,37 @@ export default function Projects() {
                     )}
                   </div>
 
-                  {/* Links */}
-                  <div className="flex gap-3">
+                  {/* Links + Ask AI */}
+                  <div className="flex items-center gap-3 flex-wrap">
                     {project.github && (
-                      <a
-                        href={project.github}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-xs transition-colors"
-                      >
+                      <a href={project.github} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-xs transition-colors">
                         <FaGithub size={14} /> Code
                       </a>
                     )}
                     {isSicm(project.id) ? (
                       <>
-                        <button
-                          onClick={() => setSicmOpen(true)}
-                          className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs transition-colors"
-                        >
+                        <button onClick={() => setSicmOpen(true)}
+                          className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs transition-colors">
                           <Monitor size={14} /> Preview
                         </button>
-                        <a
-                          href={project.demo}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-xs transition-colors"
-                        >
+                        <a href={project.demo} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-xs transition-colors">
                           <ExternalLink size={14} /> Open Site
                         </a>
                       </>
                     ) : (
-                      <a
-                        href={project.demo}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs transition-colors"
-                      >
+                      <a href={project.demo} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs transition-colors">
                         <ExternalLink size={14} /> {project.github ? "Live Demo" : "View Project"}
                       </a>
                     )}
+                    <button
+                      onClick={() => openWithMessage(`Tell me about the project: ${project.title}`)}
+                      className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 text-xs font-medium transition-colors"
+                    >
+                      <MessageSquare size={12} /> Ask AI
+                    </button>
                   </div>
                 </div>
               </motion.div>

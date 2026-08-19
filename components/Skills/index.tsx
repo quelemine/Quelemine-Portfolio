@@ -1,15 +1,38 @@
 "use client";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "framer-motion";
-import { useRef } from "react";
-import { Monitor, Server, Database, Code2, Wrench } from "lucide-react";
+import { useRef, useState } from "react";
+import { Monitor, Server, Database, Code2, Wrench, X } from "lucide-react";
 import { skillCategories } from "@/data/skills";
 
 const iconMap = { Monitor, Server, Database, Code2, Wrench };
 
+const tagInfo: Record<string, { use: string; how: string; related: string[] }> = {
+  "HTML5":       { use: "Structure of web pages", how: "Isaac uses HTML5 to build semantic, accessible web layouts", related: ["CSS3", "JavaScript"] },
+  "CSS3":        { use: "Styling and layout", how: "Used for responsive designs, animations, and modern UI", related: ["HTML5", "JavaScript"] },
+  "JavaScript":  { use: "Web interactivity", how: "Core language for frontend logic and dynamic content", related: ["React.js", "HTML5"] },
+  "React.js":    { use: "Component-based UI", how: "Isaac builds SPAs and dashboards with React.js", related: ["JavaScript", "REST APIs"] },
+  "Java":        { use: "Backend applications", how: "Primary language for server-side logic and APIs", related: ["Spring Boot", "MySQL"] },
+  "Spring Boot": { use: "Java web framework", how: "Used to build REST APIs and backend services quickly", related: ["Java", "REST APIs"] },
+  "PHP":         { use: "Server-side scripting", how: "Used in projects like the SICM Church Management System", related: ["MySQL", "HTML5"] },
+  "REST APIs":   { use: "Client-server communication", how: "Isaac designs and consumes REST APIs across all projects", related: ["Spring Boot", "Java"] },
+  "MySQL":       { use: "Relational database", how: "Primary database for PHP and Java projects", related: ["SQL", "PHP", "Java"] },
+  "PostgreSQL":  { use: "Advanced relational DB", how: "Used in Spring Boot backend projects", related: ["SQL", "Spring Boot"] },
+  "SQL":         { use: "Database querying", how: "Writing optimized queries for data retrieval and management", related: ["MySQL", "PostgreSQL"] },
+  "OOP":         { use: "Software design paradigm", how: "Applied in Java and PHP projects for clean architecture", related: ["Java", "PHP"] },
+  "SDLC":        { use: "Software development lifecycle", how: "Isaac follows structured development processes", related: ["Git", "Debugging"] },
+  "Git":         { use: "Version control", how: "Used for source control across all projects", related: ["GitHub", "Linux"] },
+  "Debugging":   { use: "Finding and fixing bugs", how: "Systematic debugging in Java, PHP, and JavaScript", related: ["OOP", "SDLC"] },
+  "GitHub":      { use: "Code hosting & collaboration", how: "All projects are hosted and versioned on GitHub", related: ["Git"] },
+  "Linux":       { use: "Server OS", how: "Used for development environments and server management", related: ["Git", "GitHub"] },
+  "VS Code":     { use: "Code editor", how: "Primary IDE for all development work", related: ["Git", "JavaScript"] },
+};
+
 export default function Skills() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const info = activeTag ? tagInfo[activeTag] : null;
 
   return (
     <section id="skills" className="section-padding relative" ref={ref}>
@@ -57,18 +80,21 @@ export default function Skills() {
                     </span>
                   </div>
 
-                  {/* Tech tags */}
+                  {/* Tech tags — clickable */}
                   <div className="flex flex-wrap gap-2">
                     {cat.tags.map((tag, j) => (
-                      <motion.span
+                      <motion.button
                         key={tag}
                         initial={{ opacity: 0, scale: 0.85 }}
                         animate={inView ? { opacity: 1, scale: 1 } : {}}
                         transition={{ duration: 0.25, delay: i * 0.1 + j * 0.05 }}
-                        className="skill-badge px-3 py-1 rounded-full text-xs font-semibold cursor-default"
+                        onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                        className={`skill-badge px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                          activeTag === tag ? "ring-2 ring-blue-400 bg-blue-100" : "cursor-pointer hover:ring-1 hover:ring-blue-300"
+                        }`}
                       >
                         {tag}
-                      </motion.span>
+                      </motion.button>
                     ))}
                   </div>
 
@@ -95,6 +121,49 @@ export default function Skills() {
             );
           })}
         </div>
+
+        {/* Skill info popover */}
+        <AnimatePresence>
+          {info && activeTag && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="mt-6 glass-card rounded-2xl p-5 border-l-4 border-blue-500"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-slate-800 font-bold text-sm mb-3">{activeTag}</p>
+                  <div className="grid sm:grid-cols-3 gap-4 text-xs">
+                    <div>
+                      <p className="text-slate-400 uppercase tracking-widest text-[10px] mb-1">Used for</p>
+                      <p className="text-slate-700">{info.use}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 uppercase tracking-widest text-[10px] mb-1">How Isaac uses it</p>
+                      <p className="text-slate-700">{info.how}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 uppercase tracking-widest text-[10px] mb-1">Related</p>
+                      <div className="flex flex-wrap gap-1">
+                        {info.related.map((r) => (
+                          <button key={r} onClick={() => setActiveTag(r)}
+                            className="skill-badge px-2 py-0.5 rounded-full text-[11px] font-medium hover:ring-1 hover:ring-blue-300">
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => setActiveTag(null)} className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0">
+                  <X size={16} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Core Technology Stack */}
         <motion.div

@@ -7,6 +7,7 @@ import { IMAGES } from "@/lib/images";
 import { FaWhatsapp } from "react-icons/fa6";
 import AIAvatar from "@/components/UI/AIAvatar";
 import { createSession, logMessage } from "@/lib/chatLogger";
+import { useChatContext } from "@/context/ChatContext";
 
 interface Message {
   id: number;
@@ -107,6 +108,15 @@ function UserAvatar({ name, size = 28 }: { name: string; size?: number }) {
   );
 }
 
+const SUGGESTED_QUESTIONS = [
+  "Who is Isaac?",
+  "What technical skills does Isaac have?",
+  "What projects has Isaac built?",
+  "Tell me about the SICM Church Management System.",
+  "What services does Isaac offer?",
+  "How can I contact Isaac?",
+];
+
 const QUICK_PROMPTS = ["What are his skills?", "I want to hire him", "Let's collaborate", "How to contact Isaac?"];
 
 export default function WhatsAppAgent() {
@@ -119,6 +129,19 @@ export default function WhatsAppAgent() {
   const [lastWhatsappMsg, setLastWhatsappMsg] = useState("");
   const [sessionId, setSessionId]   = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { pendingMessage, clearPending } = useChatContext();
+
+  // Open and auto-send when triggered from another component
+  useEffect(() => {
+    if (pendingMessage && userName) {
+      setOpen(true);
+      sendMessage(pendingMessage);
+      clearPending();
+    } else if (pendingMessage) {
+      setOpen(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingMessage]);
 
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -134,27 +157,35 @@ export default function WhatsAppAgent() {
     const greeting = `Hi ${name}! 👋 I'm Isaac's AI assistant. I can answer questions about his skills, experience, and projects — or connect you with him directly on WhatsApp. How can I help you today?`;
     setMessages([{ id: Date.now(), role: "bot", text: greeting }]);
     logMessage(sid, "bot", greeting);
+    // If there was a pending message from a project card, send it now
+    if (pendingMessage) {
+      setTimeout(() => { sendMessageWithSession(pendingMessage, sid, name); clearPending(); }, 1000);
+    }
   };
 
-  const sendMessage = (text: string) => {
-    if (!text.trim()) return;
+  const sendMessageWithSession = (text: string, sid: string, name: string) => {
     setMessages((prev) => [...prev, { id: Date.now(), role: "user", text }]);
-    logMessage(sessionId, "user", text);
-    setInput("");
+    logMessage(sid, "user", text);
     setTyping(true);
     setTimeout(() => {
       try {
-        const reply = getBotReply(text, userName);
+        const reply = getBotReply(text, name);
         setMessages((prev) => [...prev, { id: Date.now() + 1, role: "bot", text: reply.text }]);
-        logMessage(sessionId, "bot", reply.text, "success");
+        logMessage(sid, "bot", reply.text, "success");
         if (reply.whatsappMsg) setLastWhatsappMsg(reply.whatsappMsg);
       } catch {
         const errText = "Sorry, something went wrong. Please try again.";
         setMessages((prev) => [...prev, { id: Date.now() + 1, role: "bot", text: errText }]);
-        logMessage(sessionId, "bot", errText, "error");
+        logMessage(sid, "bot", errText, "error");
       }
       setTyping(false);
     }, 900);
+  };
+
+  const sendMessage = (text: string) => {
+    if (!text.trim() || !sessionId) return;
+    sendMessageWithSession(text, sessionId, userName);
+    setInput("");
   };
 
   return (
@@ -230,6 +261,17 @@ export default function WhatsAppAgent() {
                     Start Chatting <ArrowRight size={15} />
                   </button>
                 </form>
+                {/* Suggested questions preview */}
+                <div className="w-full">
+                  <p className="text-slate-500 text-xs text-center mb-2">You can ask things like:</p>
+                  <div className="flex flex-col gap-1.5">
+                    {SUGGESTED_QUESTIONS.slice(0, 3).map((q) => (
+                      <div key={q} className="px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/50 text-slate-400 text-xs">
+                        &ldquo;{q}&rdquo;
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             ) : (
               <>
@@ -270,14 +312,17 @@ export default function WhatsAppAgent() {
                   <div ref={bottomRef} />
                 </div>
 
-                {/* Quick prompts */}
-                <div className="bg-slate-900 px-3 py-2 flex gap-2 overflow-x-auto flex-shrink-0 border-t border-white/5">
-                  {QUICK_PROMPTS.map((p) => (
-                    <button key={p} onClick={() => sendMessage(p)}
-                      className="flex-shrink-0 px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700 transition-colors">
-                      {p}
-                    </button>
-                  ))}
+                {/* Suggested questions */}
+                <div className="bg-slate-900 px-3 py-2 flex-shrink-0 border-t border-white/5">
+                  <p className="text-slate-500 text-[10px] uppercase tracking-widest mb-2 px-1">Suggested questions</p>
+                  <div className="flex flex-col gap-1">
+                    {SUGGESTED_QUESTIONS.map((q) => (
+                      <button key={q} onClick={() => sendMessage(q)}
+                        className="text-left px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors">
+                        {q}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* WhatsApp buttons */}

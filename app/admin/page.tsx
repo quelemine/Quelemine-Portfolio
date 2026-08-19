@@ -68,6 +68,26 @@ export default function AdminDashboard() {
   const recentCount   = sessions.filter((s) => Date.now() - new Date(s.lastActiveAt).getTime() < 86400000).length;
   const errorCount    = sessions.reduce((acc, s) => acc + s.messages.filter((m) => m.status === "error").length, 0);
 
+  // Top questions — user messages sorted by frequency
+  const questionFreq: Record<string, number> = {};
+  sessions.forEach((s) => s.messages.filter((m) => m.role === "user").forEach((m) => {
+    const key = m.text.trim().toLowerCase();
+    questionFreq[key] = (questionFreq[key] ?? 0) + 1;
+  }));
+  const topQuestions = Object.entries(questionFreq).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  // Conversations by day (last 7 days)
+  const dayLabels = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (6 - i));
+    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  });
+  const dayKeys = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (6 - i));
+    return d.toDateString();
+  });
+  const byDay = dayKeys.map((dk) => sessions.filter((s) => new Date(s.startedAt).toDateString() === dk).length);
+  const maxDay = Math.max(...byDay, 1);
+
   if (!authed) {
     return (
       <div className="min-h-screen bg-[#0B1F3A] flex items-center justify-center px-4">
@@ -131,7 +151,47 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* Controls */}
+        {/* Analytics row */}
+        <div className="grid sm:grid-cols-2 gap-4">
+          {/* Conversations by day */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <p className="text-slate-700 font-semibold text-sm mb-4">Conversations — Last 7 Days</p>
+            <div className="flex items-end gap-2 h-24">
+              {byDay.map((count, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <span className="text-[10px] text-slate-500">{count > 0 ? count : ""}</span>
+                  <div
+                    className="w-full rounded-t bg-blue-500 transition-all"
+                    style={{ height: `${Math.max((count / maxDay) * 72, count > 0 ? 6 : 2)}px`, opacity: count > 0 ? 1 : 0.2 }}
+                  />
+                  <span className="text-[9px] text-slate-400 text-center leading-tight">{dayLabels[i].split(",")[0]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Top questions */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <p className="text-slate-700 font-semibold text-sm mb-4">Most Common Questions</p>
+            {topQuestions.length === 0 ? (
+              <p className="text-slate-400 text-xs">No questions yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {topQuestions.map(([q, count]) => (
+                  <div key={q} className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-slate-700 text-xs truncate capitalize">{q}</p>
+                      <div className="mt-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="h-full bg-blue-400 rounded-full" style={{ width: `${(count / (topQuestions[0]?.[1] ?? 1)) * 100}%` }} />
+                      </div>
+                    </div>
+                    <span className="text-xs font-semibold text-blue-600 flex-shrink-0">{count}×</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
