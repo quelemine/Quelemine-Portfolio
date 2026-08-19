@@ -40,7 +40,7 @@ export default function Hero() {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="text-5xl sm:text-6xl font-bold text-white mb-3 leading-[1.1] tracking-tight"
             >
-              Isaac L.{" "}
+              <span className="text-white">Isaac L.</span>{" "}
               <span className="gradient-text-hero">Quelemine</span>
             </motion.h1>
 
