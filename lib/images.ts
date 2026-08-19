@@ -29,6 +29,7 @@ export const IMAGES = {
     4: "/images/projects/project-4.png",
     5: "/images/projects/project-5.png",
     6: "/images/projects/project-6.png",
+    7: "/images/projects/project-7.svg",
   },
 
   // Social preview image (used in OpenGraph / Twitter card)

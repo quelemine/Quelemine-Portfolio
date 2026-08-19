@@ -3,7 +3,32 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { ExternalLink, FolderOpen } from "lucide-react";
 import { FaGithub } from "react-icons/fa6";
+import Image from "next/image";
 import { projects, projectFilters, type ProjectCategory } from "@/data/projects";
+
+function ProjectThumbnail({ project }: { project: (typeof projects)[number] }) {
+  const [imgError, setImgError] = useState(false);
+  if (!imgError && project.image) {
+    return (
+      <Image
+        src={project.image}
+        alt={project.title}
+        fill
+        className="object-cover object-top"
+        onError={() => setImgError(true)}
+        unoptimized={project.image.endsWith(".svg")}
+      />
+    );
+  }
+  return (
+    <div className="absolute inset-0 flex items-center justify-center">
+      <div className="text-center">
+        <FolderOpen size={40} className="text-slate-600 mx-auto mb-2" />
+        <span className="text-slate-600 text-sm">{project.title}</span>
+      </div>
+    </div>
+  );
+}
 
 export default function Projects() {
   const [active, setActive] = useState<ProjectCategory>("all");
@@ -74,29 +99,26 @@ export default function Projects() {
               >
                 {/* Project image */}
                 <div className="relative h-44 bg-gradient-to-br from-slate-800 to-slate-900 overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <FolderOpen size={40} className="text-slate-600 mx-auto mb-2" />
-                      <span className="text-slate-600 text-sm">{project.title}</span>
-                    </div>
-                  </div>
+                  <ProjectThumbnail project={project} />
                   {/* Overlay on hover */}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4 gap-3">
-                    <a
-                      href={project.github}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 backdrop-blur text-white text-xs hover:bg-white/20 transition-all"
-                    >
-                      <FaGithub size={14} /> GitHub
-                    </a>
+                    {project.github && (
+                      <a
+                        href={project.github}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 backdrop-blur text-white text-xs hover:bg-white/20 transition-all"
+                      >
+                        <FaGithub size={14} /> GitHub
+                      </a>
+                    )}
                     <a
                       href={project.demo}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/80 backdrop-blur text-white text-xs hover:bg-blue-600 transition-all"
                     >
-                      <ExternalLink size={14} /> Live Demo
+                      <ExternalLink size={14} /> {project.github ? "Live Demo" : "View Project"}
                     </a>
                   </div>
                   {/* Category badge */}
@@ -133,21 +155,23 @@ export default function Projects() {
 
                   {/* Links */}
                   <div className="flex gap-3">
-                    <a
-                      href={project.github}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-slate-400 hover:text-white text-xs transition-colors"
-                    >
-                      <FaGithub size={14} /> Code
-                    </a>
+                    {project.github && (
+                      <a
+                        href={project.github}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-slate-400 hover:text-white text-xs transition-colors"
+                      >
+                        <FaGithub size={14} /> Code
+                      </a>
+                    )}
                     <a
                       href={project.demo}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 text-xs transition-colors"
                     >
-                      <ExternalLink size={14} /> Live Demo
+                      <ExternalLink size={14} /> {project.github ? "Live Demo" : "View Project"}
                     </a>
                   </div>
                 </div>

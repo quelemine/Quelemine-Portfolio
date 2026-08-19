@@ -9,7 +9,7 @@ export interface Project {
   image: string;
   technologies: string[];
   category: ProjectCategory;
-  github: string;
+  github?: string;
   demo: string;
   featured: boolean;
 }
@@ -80,6 +80,16 @@ export const projects: Project[] = [
     github: "https://github.com/quelemine",
     demo: "https://queleminetech.info",
     featured: false,
+  },
+  {
+    id: 7,
+    title: "SICM Church Management System",
+    description: "A full-stack church management web application for SICM, featuring member registration, attendance tracking, event scheduling, and administrative dashboards — built with PHP and MySQL.",
+    image: IMAGES.projects[7],
+    technologies: ["PHP", "MySQL", "HTML5", "CSS3", "JavaScript"],
+    category: "fullstack",
+    demo: "https://sicmchurch.gt.tc/login.php?i=1",
+    featured: true,
   },
 ];
 
