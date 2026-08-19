@@ -1,0 +1,32 @@
+export const educationData = [
+  {
+    id: 1,
+    degree: "Software Engineering Student",
+    institution: "University of Lay Adventist of Kigali (UNILAK)",
+    location: "Rwanda",
+    period: "Current",
+    status: "In Progress",
+    description: "Pursuing a degree in Software Engineering, focusing on modern software development practices, algorithms, and system design.",
+    icon: "GraduationCap",
+  },
+  {
+    id: 2,
+    degree: "Information Technology Student",
+    institution: "BYU Pathway Worldwide – Ensign College",
+    location: "Online",
+    period: "Current",
+    status: "In Progress",
+    description: "Studying Information Technology with emphasis on practical skills and professional development in the tech industry.",
+    icon: "BookOpen",
+  },
+  {
+    id: 3,
+    degree: "Associate Degree in Computer Programming",
+    institution: "Rauf Denktas University",
+    location: "Northern Cyprus",
+    period: "Completed",
+    status: "Completed",
+    description: "Earned an Associate Degree in Computer Programming, building strong foundations in programming fundamentals, data structures, and software development.",
+    icon: "Award",
+  },
+];
