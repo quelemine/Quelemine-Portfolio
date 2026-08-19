@@ -76,6 +76,11 @@ function getBotReply(input: string, name: string): { text: string; whatsappMsg?:
       whatsappMsg: `Hi Isaac! I'm ${name}. I saw you're available for work and I'd like to discuss an opportunity.`,
     };
 
+  if (/no[!\s]*thanks|no[!\s]*thank you|nothing|no more|that'?s all|that is all|i'?m good|i am good|bye|goodbye|see you|take care|farewell/.test(q))
+    return {
+      text: `Thanks for chatting, ${name}! Have a wonderful day! 😊👋`,
+    };
+
   return {
     text: `Thanks, ${name}! For the best response, I recommend reaching Isaac directly on WhatsApp — he typically replies within minutes. You can also email him at ${EMAIL}. Is there anything specific about his skills or experience I can help with? 😊`,
     whatsappMsg: `Hi Isaac! I'm ${name}. I have a question from your portfolio website.`,
