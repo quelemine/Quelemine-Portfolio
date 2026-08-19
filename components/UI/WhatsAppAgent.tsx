@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, User, MessageCircle } from "lucide-react";
+import { X, Send, MessageCircle, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { IMAGES } from "@/lib/images";
 import { FaWhatsapp } from "react-icons/fa6";
@@ -12,33 +12,30 @@ interface Message {
   text: string;
 }
 
-// WhatsApp numbers — primary Liberia, secondary Turkey, Rwanda phone
-const WA_PRIMARY = "+231880857969";
+const WA_PRIMARY   = "+231880857969";
 const WA_SECONDARY = "+905338721736";
-const PHONE_RW = "+250793148624";
-const EMAIL = "quelemineisaacl@gmail.com";
+const PHONE_RW     = "+250793148624";
+const EMAIL        = "quelemineisaacl@gmail.com";
+const BOT_NAME     = "Isaac's Assistant";
 
-const BOT_NAME = "Isaac's Assistant";
-
-// AI agent decision tree
-function getBotReply(input: string): { text: string; whatsappMsg?: string } {
+function getBotReply(input: string, name: string): { text: string; whatsappMsg?: string } {
   const q = input.toLowerCase().trim();
 
   if (/hire|job|work|opportunit|recruit|position|role|employ/.test(q))
     return {
-      text: `Great! Isaac is open to new opportunities. You can reach him directly on WhatsApp for a quick response, or send an email to ${EMAIL}. Click the WhatsApp button below to start a conversation! 🚀`,
-      whatsappMsg: `Hi Isaac! I found you through your portfolio and I'd like to discuss a job opportunity with you.`,
+      text: `Great, ${name}! Isaac is open to new opportunities. You can reach him directly on WhatsApp for a quick response, or send an email to ${EMAIL}. Click the WhatsApp button below! 🚀`,
+      whatsappMsg: `Hi Isaac! I'm ${name}. I found you through your portfolio and I'd like to discuss a job opportunity with you.`,
     };
 
   if (/project|collaborat|freelanc|build|develop/.test(q))
     return {
-      text: `Isaac loves collaborating on projects! Whether it's a full-stack web app, backend API, or database system — he's your guy. Tap WhatsApp below to discuss your project idea directly. 💡`,
-      whatsappMsg: `Hi Isaac! I'd like to collaborate on a project with you. Can we talk?`,
+      text: `Isaac loves collaborating on projects, ${name}! Whether it's a full-stack web app, backend API, or database system — he's your guy. Tap WhatsApp below to discuss your idea directly. 💡`,
+      whatsappMsg: `Hi Isaac! I'm ${name}. I'd like to collaborate on a project with you. Can we talk?`,
     };
 
   if (/skill|tech|stack|react|java|php|spring|mysql|language/.test(q))
     return {
-      text: `Isaac's core stack includes React.js, Java, Spring Boot, PHP, MySQL, and PostgreSQL. He's a Full Stack Developer with strong software engineering fundamentals. Want to know more? Ask away or contact him on WhatsApp! ⚡`,
+      text: `Isaac's core stack includes React.js, Java, Spring Boot, PHP, MySQL, and PostgreSQL. He's a Full Stack Developer with strong software engineering fundamentals. Anything else you'd like to know, ${name}? ⚡`,
     };
 
   if (/education|degree|university|school|study|student/.test(q))
@@ -53,63 +50,66 @@ function getBotReply(input: string): { text: string; whatsappMsg?: string } {
 
   if (/email|mail|contact|reach|message/.test(q))
     return {
-      text: `You can reach Isaac at ${EMAIL} or via WhatsApp for a faster response. His phone number in Rwanda is ${PHONE_RW}. Click the WhatsApp button below! 📧`,
-      whatsappMsg: `Hi Isaac! I'd like to get in touch with you.`,
+      text: `You can reach Isaac at ${EMAIL} or via WhatsApp for a faster response. His Rwanda number is ${PHONE_RW}. Click the WhatsApp button below, ${name}! 📧`,
+      whatsappMsg: `Hi Isaac! I'm ${name}. I'd like to get in touch with you.`,
     };
 
   if (/whatsapp|phone|call|number/.test(q))
     return {
-      text: `Isaac is available on WhatsApp at ${WA_PRIMARY} (Liberia) or ${WA_SECONDARY} (Turkey). His Rwanda phone is ${PHONE_RW}. Click the button below for a quick WhatsApp chat! 📱`,
-      whatsappMsg: `Hi Isaac! I'm reaching out from your portfolio website.`,
+      text: `Isaac is available on WhatsApp at ${WA_PRIMARY} (Liberia) or ${WA_SECONDARY} (Turkey). His Rwanda phone is ${PHONE_RW}. Click below for a quick chat, ${name}! 📱`,
+      whatsappMsg: `Hi Isaac! I'm ${name}, reaching out from your portfolio.`,
     };
 
   if (/hello|hi|hey|good|morning|afternoon|evening|howdy/.test(q))
     return {
-      text: `Hello! 👋 I'm Isaac's AI assistant. I can help you learn about Isaac's skills, projects, education, or connect you with him directly on WhatsApp. What would you like to know?`,
+      text: `Hey ${name}! 👋 How can I help you today? You can ask about Isaac's skills, projects, education, or I can connect you with him directly on WhatsApp.`,
     };
 
-  if (/portfolio|website|project|work|built/.test(q))
+  if (/portfolio|website|built/.test(q))
     return {
       text: `Isaac's portfolio at queleminetech.info showcases full-stack applications, backend APIs, database systems, and frontend interfaces. Check out the Projects section above! 🖥️`,
     };
 
-  if (/available|open|hire|free/.test(q))
+  if (/available|open|free/.test(q))
     return {
-      text: `Yes! Isaac is currently available for full-time, part-time, and freelance opportunities. Reach out on WhatsApp for the fastest response! ✅`,
-      whatsappMsg: `Hi Isaac! I saw you're available for work. I'd like to discuss an opportunity.`,
+      text: `Yes, ${name}! Isaac is currently available for full-time, part-time, and freelance opportunities. Reach out on WhatsApp for the fastest response! ✅`,
+      whatsappMsg: `Hi Isaac! I'm ${name}. I saw you're available for work and I'd like to discuss an opportunity.`,
     };
 
   return {
-    text: `Thanks for your message! For the best response, I recommend reaching Isaac directly on WhatsApp — he typically replies within minutes. You can also email him at ${EMAIL}. Is there anything specific about his skills or experience I can help with? 😊`,
-    whatsappMsg: `Hi Isaac! I have a question for you from your portfolio website.`,
+    text: `Thanks, ${name}! For the best response, I recommend reaching Isaac directly on WhatsApp — he typically replies within minutes. You can also email him at ${EMAIL}. Is there anything specific about his skills or experience I can help with? 😊`,
+    whatsappMsg: `Hi Isaac! I'm ${name}. I have a question from your portfolio website.`,
   };
 }
 
 function openWhatsApp(number: string, message: string) {
-  const encoded = encodeURIComponent(message);
-  window.open(`https://wa.me/${number.replace(/\D/g, "")}?text=${encoded}`, "_blank");
+  window.open(`https://wa.me/${number.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`, "_blank");
 }
 
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: 0,
-    role: "bot",
-    text: `Hi there! 👋 I'm Isaac's AI assistant. I can answer questions about his skills, experience, and projects — or connect you with him directly on WhatsApp for a quick response. How can I help you today?`,
-  },
-];
+/** Generates a colored circle avatar from initials */
+function UserAvatar({ name, size = 28 }: { name: string; size?: number }) {
+  const initials = name.trim().split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  const colors = ["#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#10B981", "#EF4444", "#06B6D4"];
+  const color = colors[name.charCodeAt(0) % colors.length];
+  return (
+    <div
+      className="rounded-full flex items-center justify-center flex-shrink-0 font-bold text-white"
+      style={{ width: size, height: size, background: color, fontSize: size * 0.38 }}
+    >
+      {initials}
+    </div>
+  );
+}
 
-const QUICK_PROMPTS = [
-  "What are his skills?",
-  "I want to hire him",
-  "Let's collaborate",
-  "How to contact Isaac?",
-];
+const QUICK_PROMPTS = ["What are his skills?", "I want to hire him", "Let's collaborate", "How to contact Isaac?"];
 
 export default function WhatsAppAgent() {
-  const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-  const [input, setInput] = useState("");
-  const [typing, setTyping] = useState(false);
+  const [open, setOpen]               = useState(false);
+  const [userName, setUserName]       = useState("");
+  const [nameInput, setNameInput]     = useState("");
+  const [messages, setMessages]       = useState<Message[]>([]);
+  const [input, setInput]             = useState("");
+  const [typing, setTyping]           = useState(false);
   const [lastWhatsappMsg, setLastWhatsappMsg] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -117,24 +117,29 @@ export default function WhatsAppAgent() {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open, typing]);
 
+  const startChat = (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = nameInput.trim();
+    if (!name) return;
+    setUserName(name);
+    setMessages([{
+      id: Date.now(),
+      role: "bot",
+      text: `Hi ${name}! 👋 I'm Isaac's AI assistant. I can answer questions about his skills, experience, and projects — or connect you with him directly on WhatsApp. How can I help you today?`,
+    }]);
+  };
+
   const sendMessage = (text: string) => {
     if (!text.trim()) return;
-    const userMsg: Message = { id: Date.now(), role: "user", text };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => [...prev, { id: Date.now(), role: "user", text }]);
     setInput("");
     setTyping(true);
-
     setTimeout(() => {
-      const reply = getBotReply(text);
+      const reply = getBotReply(text, userName);
       setMessages((prev) => [...prev, { id: Date.now() + 1, role: "bot", text: reply.text }]);
       if (reply.whatsappMsg) setLastWhatsappMsg(reply.whatsappMsg);
       setTyping(false);
     }, 900);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    sendMessage(input);
   };
 
   return (
@@ -151,7 +156,6 @@ export default function WhatsAppAgent() {
         aria-label="Chat with Isaac's AI assistant"
       >
         <Image src={IMAGES.profile} alt="Isaac" fill className="object-cover object-top" />
-        {/* Pulse ring */}
         <span className="absolute inset-0 rounded-full ring-2 ring-green-400 animate-ping opacity-30" />
       </motion.button>
 
@@ -179,120 +183,130 @@ export default function WhatsAppAgent() {
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="text-white/70 hover:text-white transition-colors p-1"
-              >
+              <button onClick={() => setOpen(false)} className="text-white/70 hover:text-white transition-colors p-1">
                 <X size={18} />
               </button>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto bg-[#0a0f1e] p-4 space-y-3 min-h-0 max-h-80">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
-                >
-                  <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
-                    {msg.role === "bot"
-                      ? <Image src={IMAGES.profile} alt="Isaac" width={28} height={28} className="object-cover object-top w-full h-full" />
-                      : <div className="w-full h-full bg-blue-500/20 flex items-center justify-center"><User size={14} className="text-blue-400" /></div>
-                    }
+            {/* Name capture screen */}
+            {!userName ? (
+              <div className="flex-1 bg-[#0a0f1e] flex flex-col items-center justify-center p-8 gap-6">
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-green-500/40 mx-auto mb-4">
+                    <Image src="/images/profile/isaac-profile.jpg" alt="Isaac" width={64} height={64} className="object-cover object-top w-full h-full" />
                   </div>
-                  <div className={`max-w-[78%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
-                    msg.role === "bot"
-                      ? "bg-slate-800 text-slate-200 rounded-bl-sm"
-                      : "bg-blue-600 text-white rounded-br-sm"
-                  }`}>
-                    {msg.text}
-                  </div>
+                  <p className="text-white font-semibold text-base">Welcome! 👋</p>
+                  <p className="text-slate-400 text-sm mt-1">What&apos;s your name so I can greet you properly?</p>
                 </div>
-              ))}
-
-              {/* Typing indicator */}
-              {typing && (
-                <div className="flex items-end gap-2">
-                  <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
-                    <Image src={IMAGES.profile} alt="Isaac" width={28} height={28} className="object-cover object-top w-full h-full" />
-                  </div>
-                  <div className="bg-slate-800 px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1">
-                    {[0, 1, 2].map((i) => (
-                      <motion.span
-                        key={i}
-                        className="w-1.5 h-1.5 bg-slate-400 rounded-full"
-                        animate={{ y: [0, -4, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div ref={bottomRef} />
-            </div>
-
-            {/* Quick prompts */}
-            <div className="bg-slate-900 px-3 py-2 flex gap-2 overflow-x-auto flex-shrink-0 border-t border-white/5">
-              {QUICK_PROMPTS.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => sendMessage(p)}
-                  className="flex-shrink-0 px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700 transition-colors"
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-
-            {/* WhatsApp direct button (shown after relevant bot reply) */}
-            {lastWhatsappMsg && (
-              <div className="bg-slate-900 px-3 pb-2 flex gap-2 flex-shrink-0">
-                <button
-                  onClick={() => openWhatsApp(WA_PRIMARY, lastWhatsappMsg)}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-xs font-medium transition-colors"
-                >
-                  <FaWhatsapp size={14} /> WhatsApp (Liberia)
-                </button>
-                <button
-                  onClick={() => openWhatsApp(WA_SECONDARY, lastWhatsappMsg)}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-700 hover:bg-green-600 text-white text-xs font-medium transition-colors"
-                >
-                  <FaWhatsapp size={14} /> WhatsApp (TR)
-                </button>
+                <form onSubmit={startChat} className="w-full flex flex-col gap-3">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    placeholder="Enter your name..."
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-green-500/60 transition-colors"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!nameInput.trim()}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
+                  >
+                    Start Chatting <ArrowRight size={15} />
+                  </button>
+                </form>
               </div>
-            )}
+            ) : (
+              <>
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto bg-[#0a0f1e] p-4 space-y-3 min-h-0 max-h-80">
+                  {messages.map((msg) => (
+                    <div key={msg.id} className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                      {/* Avatar */}
+                      {msg.role === "bot" ? (
+                        <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+                          <Image src={IMAGES.profile} alt="Isaac" width={28} height={28} className="object-cover object-top w-full h-full" />
+                        </div>
+                      ) : (
+                        <UserAvatar name={userName} size={28} />
+                      )}
+                      <div className={`max-w-[78%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+                        msg.role === "bot"
+                          ? "bg-slate-800 text-slate-200 rounded-bl-sm"
+                          : "bg-blue-600 text-white rounded-br-sm"
+                      }`}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
 
-            {/* Input */}
-            <form
-              onSubmit={handleSubmit}
-              className="bg-slate-900 border-t border-white/5 px-3 py-3 flex gap-2 flex-shrink-0"
-            >
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask me anything about Isaac..."
-                className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-green-500/50 transition-colors"
-              />
-              <button
-                type="submit"
-                disabled={!input.trim()}
-                className="w-9 h-9 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors flex-shrink-0"
-              >
-                <Send size={15} className="text-white" />
-              </button>
-            </form>
+                  {/* Typing indicator */}
+                  {typing && (
+                    <div className="flex items-end gap-2">
+                      <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+                        <Image src={IMAGES.profile} alt="Isaac" width={28} height={28} className="object-cover object-top w-full h-full" />
+                      </div>
+                      <div className="bg-slate-800 px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1">
+                        {[0, 1, 2].map((i) => (
+                          <motion.span key={i} className="w-1.5 h-1.5 bg-slate-400 rounded-full"
+                            animate={{ y: [0, -4, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div ref={bottomRef} />
+                </div>
+
+                {/* Quick prompts */}
+                <div className="bg-slate-900 px-3 py-2 flex gap-2 overflow-x-auto flex-shrink-0 border-t border-white/5">
+                  {QUICK_PROMPTS.map((p) => (
+                    <button key={p} onClick={() => sendMessage(p)}
+                      className="flex-shrink-0 px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700 transition-colors">
+                      {p}
+                    </button>
+                  ))}
+                </div>
+
+                {/* WhatsApp buttons */}
+                {lastWhatsappMsg && (
+                  <div className="bg-slate-900 px-3 pb-2 flex gap-2 flex-shrink-0">
+                    <button onClick={() => openWhatsApp(WA_PRIMARY, lastWhatsappMsg)}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-xs font-medium transition-colors">
+                      <FaWhatsapp size={14} /> WhatsApp (Liberia)
+                    </button>
+                    <button onClick={() => openWhatsApp(WA_SECONDARY, lastWhatsappMsg)}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-700 hover:bg-green-600 text-white text-xs font-medium transition-colors">
+                      <FaWhatsapp size={14} /> WhatsApp (TR)
+                    </button>
+                  </div>
+                )}
+
+                {/* Input */}
+                <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }}
+                  className="bg-slate-900 border-t border-white/5 px-3 py-3 flex gap-2 flex-shrink-0">
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={`Ask me anything, ${userName}...`}
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-green-500/50 transition-colors"
+                  />
+                  <button type="submit" disabled={!input.trim()}
+                    className="w-9 h-9 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors flex-shrink-0">
+                    <Send size={15} className="text-white" />
+                  </button>
+                </form>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Tooltip on first load */}
+      {/* Tooltip */}
       <AnimatePresence>
         {!open && (
           <motion.div
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
             transition={{ delay: 3, duration: 0.4 }}
             className="fixed bottom-8 right-20 z-40 glass px-3 py-2 rounded-xl text-xs text-slate-300 pointer-events-none whitespace-nowrap"
           >
