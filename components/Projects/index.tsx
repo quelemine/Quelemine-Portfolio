@@ -1,10 +1,11 @@
 "use client";
 import { useState, useRef } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
-import { ExternalLink, FolderOpen } from "lucide-react";
+import { ExternalLink, FolderOpen, Monitor } from "lucide-react";
 import { FaGithub } from "react-icons/fa6";
 import Image from "next/image";
 import { projects, projectFilters, type ProjectCategory } from "@/data/projects";
+import SicmIframeModal from "@/components/UI/SicmIframeModal";
 
 function ProjectThumbnail({ project }: { project: (typeof projects)[number] }) {
   const [imgError, setImgError] = useState(false);
@@ -32,10 +33,13 @@ function ProjectThumbnail({ project }: { project: (typeof projects)[number] }) {
 
 export default function Projects() {
   const [active, setActive] = useState<ProjectCategory>("all");
+  const [sicmOpen, setSicmOpen] = useState(false);
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   const filtered = active === "all" ? projects : projects.filter((p) => p.category === active);
+
+  const isSicm = (id: number) => id === 7;
 
   const categoryColors: Record<string, string> = {
     frontend: "text-blue-400 bg-blue-500/10 border-blue-500/20",
@@ -112,14 +116,23 @@ export default function Projects() {
                         <FaGithub size={14} /> GitHub
                       </a>
                     )}
-                    <a
-                      href={project.demo}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/80 backdrop-blur text-white text-xs hover:bg-blue-600 transition-all"
-                    >
-                      <ExternalLink size={14} /> {project.github ? "Live Demo" : "View Project"}
-                    </a>
+                    {isSicm(project.id) ? (
+                      <button
+                        onClick={() => setSicmOpen(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/80 backdrop-blur text-white text-xs hover:bg-blue-600 transition-all"
+                      >
+                        <Monitor size={14} /> Preview
+                      </button>
+                    ) : (
+                      <a
+                        href={project.demo}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/80 backdrop-blur text-white text-xs hover:bg-blue-600 transition-all"
+                      >
+                        <ExternalLink size={14} /> {project.github ? "Live Demo" : "View Project"}
+                      </a>
+                    )}
                   </div>
                   {/* Category badge */}
                   <div className="absolute top-3 right-3">
@@ -165,14 +178,33 @@ export default function Projects() {
                         <FaGithub size={14} /> Code
                       </a>
                     )}
-                    <a
-                      href={project.demo}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 text-xs transition-colors"
-                    >
-                      <ExternalLink size={14} /> {project.github ? "Live Demo" : "View Project"}
-                    </a>
+                    {isSicm(project.id) ? (
+                      <>
+                        <button
+                          onClick={() => setSicmOpen(true)}
+                          className="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 text-xs transition-colors"
+                        >
+                          <Monitor size={14} /> Preview
+                        </button>
+                        <a
+                          href={project.demo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-slate-400 hover:text-white text-xs transition-colors"
+                        >
+                          <ExternalLink size={14} /> Open Site
+                        </a>
+                      </>
+                    ) : (
+                      <a
+                        href={project.demo}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 text-xs transition-colors"
+                      >
+                        <ExternalLink size={14} /> {project.github ? "Live Demo" : "View Project"}
+                      </a>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -202,6 +234,7 @@ export default function Projects() {
           </a>
         </motion.div>
       </div>
+      <SicmIframeModal open={sicmOpen} onClose={() => setSicmOpen(false)} />
     </section>
   );
 }
