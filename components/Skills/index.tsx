@@ -49,19 +49,43 @@ export default function Skills() {
                 </div>
 
                 {/* Skills */}
-                <div className="flex flex-wrap gap-2">
-                  {cat.skills.map((skill, j) => (
-                    <motion.span
-                      key={skill}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={inView ? { opacity: 1, scale: 1 } : {}}
-                      transition={{ duration: 0.3, delay: i * 0.1 + j * 0.04 }}
-                      className="skill-badge px-3 py-1 rounded-full text-xs cursor-default"
-                    >
-                      {skill}
-                    </motion.span>
-                  ))}
-                </div>
+                {(() => {
+                  const tags = cat.skills.filter(s => s.split(" ").length <= 2);
+                  const descriptors = cat.skills.filter(s => s.split(" ").length > 2);
+                  return (
+                    <>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {tags.map((skill, j) => (
+                          <motion.span
+                            key={skill}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={inView ? { opacity: 1, scale: 1 } : {}}
+                            transition={{ duration: 0.3, delay: i * 0.1 + j * 0.04 }}
+                            className="skill-badge px-3 py-1 rounded-full text-xs cursor-default"
+                          >
+                            {skill}
+                          </motion.span>
+                        ))}
+                      </div>
+                      {descriptors.length > 0 && (
+                        <ul className="space-y-1">
+                          {descriptors.map((skill, j) => (
+                            <motion.li
+                              key={skill}
+                              initial={{ opacity: 0, x: -8 }}
+                              animate={inView ? { opacity: 1, x: 0 } : {}}
+                              transition={{ duration: 0.3, delay: i * 0.1 + (tags.length + j) * 0.04 }}
+                              className="flex items-center gap-2 text-xs text-slate-500"
+                            >
+                              <span className="w-1 h-1 rounded-full bg-blue-400 shrink-0" />
+                              {skill}
+                            </motion.li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  );
+                })()}
               </motion.div>
             );
           })}
