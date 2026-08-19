@@ -7,7 +7,7 @@ import Image from "next/image";
 import { projects, projectFilters, type ProjectCategory } from "@/data/projects";
 import SicmIframeModal from "@/components/UI/SicmIframeModal";
 
-function ProjectThumbnail({ project }: { project: (typeof projects)[number] }) {
+function ProjectThumbnail({ project, priority = false }: { project: (typeof projects)[number]; priority?: boolean }) {
   const [imgError, setImgError] = useState(false);
   if (!imgError && project.image) {
     return (
@@ -17,7 +17,8 @@ function ProjectThumbnail({ project }: { project: (typeof projects)[number] }) {
         fill
         className="object-cover object-top"
         onError={() => setImgError(true)}
-        unoptimized={project.image.endsWith(".svg")}
+        unoptimized
+        priority={priority}
       />
     );
   }
@@ -103,7 +104,7 @@ export default function Projects() {
               >
                 {/* Project image */}
                 <div className="relative h-44 bg-gradient-to-br from-slate-800 to-slate-900 overflow-hidden">
-                  <ProjectThumbnail project={project} />
+                  <ProjectThumbnail project={project} priority={i === 0} />
                   {/* Overlay on hover */}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4 gap-3">
                     {project.github && (

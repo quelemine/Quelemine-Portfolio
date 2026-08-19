@@ -23,12 +23,12 @@ export const IMAGES = {
   profile: "/images/profile/isaac-profile.jpg",
 
   projects: {
-    1: "/images/projects/project-1.png",
-    2: "/images/projects/project-2.png",
-    3: "/images/projects/project-3.png",
-    4: "/images/projects/project-4.png",
-    5: "/images/projects/project-5.png",
-    6: "/images/projects/project-6.png",
+    1: "/images/projects/project-1.svg",
+    2: "/images/projects/project-2.svg",
+    3: "/images/projects/project-3.svg",
+    4: "/images/projects/project-4.svg",
+    5: "/images/projects/project-5.svg",
+    6: "/images/projects/project-6.svg",
     7: "/images/projects/project-7.svg",
   },
 

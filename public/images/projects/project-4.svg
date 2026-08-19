@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#1a0e0a"/>
+  <ellipse cx="250" cy="180" rx="280" ry="200" fill="#f97316" opacity="0.07"/>
+  <ellipse cx="950" cy="480" rx="240" ry="160" fill="#f97316" opacity="0.04"/>
+  <rect x="300" y="80" width="600" height="470" rx="20" fill="#2a1a0f" stroke="#6e3a1e" stroke-width="1"/>
+  <rect x="300" y="80" width="600" height="5" rx="3" fill="#f97316"/>
+  <circle cx="600" cy="210" r="60" fill="#f97316" opacity="0.12"/>
+  <circle cx="600" cy="210" r="44" fill="#f97316" opacity="0.2"/>
+  <text x="600" y="218" font-family="Arial,sans-serif" font-size="24" font-weight="bold" fill="#fb923c" text-anchor="middle" dominant-baseline="middle">DB</text>
+  <text x="600" y="305" font-family="Arial,sans-serif" font-size="26" font-weight="bold" fill="#ffffff" text-anchor="middle">Database System</text>
+  <text x="600" y="338" font-family="Arial,sans-serif" font-size="14" fill="#94a3b8" text-anchor="middle">MySQL · SQL · PHP</text>
+  <line x1="380" y1="368" x2="820" y2="368" stroke="#6e3a1e" stroke-width="1"/>
+  <rect x="410" y="390" width="100" height="28" rx="6" fill="#f97316" opacity="0.15"/>
+  <text x="460" y="408" font-family="Arial,sans-serif" font-size="12" fill="#fb923c" text-anchor="middle">MySQL</text>
+  <rect x="530" y="390" width="80" height="28" rx="6" fill="#f97316" opacity="0.15"/>
+  <text x="570" y="408" font-family="Arial,sans-serif" font-size="12" fill="#fb923c" text-anchor="middle">SQL</text>
+  <rect x="630" y="390" width="80" height="28" rx="6" fill="#f97316" opacity="0.15"/>
+  <text x="670" y="408" font-family="Arial,sans-serif" font-size="12" fill="#fb923c" text-anchor="middle">PHP</text>
+  <text x="600" y="460" font-family="Arial,sans-serif" font-size="12" fill="#334155" text-anchor="middle">queleminetech.info</text>
+  <rect x="320" y="100" width="90" height="22" rx="5" fill="#f97316" opacity="0.2"/>
+  <text x="365" y="115" font-family="Arial,sans-serif" font-size="10" fill="#fb923c" text-anchor="middle">Project #4</text>
+</svg>
