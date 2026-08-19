@@ -1,10 +1,12 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, MessageCircle, ArrowRight, Bot } from "lucide-react";
+import { X, Send, MessageCircle, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { IMAGES } from "@/lib/images";
 import { FaWhatsapp } from "react-icons/fa6";
+import AIAvatar from "@/components/UI/AIAvatar";
+import { createSession, logMessage } from "@/lib/chatLogger";
 
 interface Message {
   id: number;
@@ -91,7 +93,6 @@ function openWhatsApp(number: string, message: string) {
   window.open(`https://wa.me/${number.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`, "_blank");
 }
 
-/** Generates a colored circle avatar from initials */
 function UserAvatar({ name, size = 28 }: { name: string; size?: number }) {
   const initials = name.trim().split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   const colors = ["#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#10B981", "#EF4444", "#06B6D4"];
@@ -109,13 +110,14 @@ function UserAvatar({ name, size = 28 }: { name: string; size?: number }) {
 const QUICK_PROMPTS = ["What are his skills?", "I want to hire him", "Let's collaborate", "How to contact Isaac?"];
 
 export default function WhatsAppAgent() {
-  const [open, setOpen]               = useState(false);
-  const [userName, setUserName]       = useState("");
-  const [nameInput, setNameInput]     = useState("");
-  const [messages, setMessages]       = useState<Message[]>([]);
-  const [input, setInput]             = useState("");
-  const [typing, setTyping]           = useState(false);
+  const [open, setOpen]             = useState(false);
+  const [userName, setUserName]     = useState("");
+  const [nameInput, setNameInput]   = useState("");
+  const [messages, setMessages]     = useState<Message[]>([]);
+  const [input, setInput]           = useState("");
+  const [typing, setTyping]         = useState(false);
   const [lastWhatsappMsg, setLastWhatsappMsg] = useState("");
+  const [sessionId, setSessionId]   = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -126,33 +128,41 @@ export default function WhatsAppAgent() {
     e.preventDefault();
     const name = nameInput.trim();
     if (!name) return;
+    const sid = createSession(name);
+    setSessionId(sid);
     setUserName(name);
-    setMessages([{
-      id: Date.now(),
-      role: "bot",
-      text: `Hi ${name}! 👋 I'm Isaac's AI assistant. I can answer questions about his skills, experience, and projects — or connect you with him directly on WhatsApp. How can I help you today?`,
-    }]);
+    const greeting = `Hi ${name}! 👋 I'm Isaac's AI assistant. I can answer questions about his skills, experience, and projects — or connect you with him directly on WhatsApp. How can I help you today?`;
+    setMessages([{ id: Date.now(), role: "bot", text: greeting }]);
+    logMessage(sid, "bot", greeting);
   };
 
   const sendMessage = (text: string) => {
     if (!text.trim()) return;
     setMessages((prev) => [...prev, { id: Date.now(), role: "user", text }]);
+    logMessage(sessionId, "user", text);
     setInput("");
     setTyping(true);
     setTimeout(() => {
-      const reply = getBotReply(text, userName);
-      setMessages((prev) => [...prev, { id: Date.now() + 1, role: "bot", text: reply.text }]);
-      if (reply.whatsappMsg) setLastWhatsappMsg(reply.whatsappMsg);
+      try {
+        const reply = getBotReply(text, userName);
+        setMessages((prev) => [...prev, { id: Date.now() + 1, role: "bot", text: reply.text }]);
+        logMessage(sessionId, "bot", reply.text, "success");
+        if (reply.whatsappMsg) setLastWhatsappMsg(reply.whatsappMsg);
+      } catch {
+        const errText = "Sorry, something went wrong. Please try again.";
+        setMessages((prev) => [...prev, { id: Date.now() + 1, role: "bot", text: errText }]);
+        logMessage(sessionId, "bot", errText, "error");
+      }
       setTyping(false);
     }, 900);
   };
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating button — AI avatar */}
       <motion.button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-green-500 hover:bg-green-400 flex items-center justify-center shadow-2xl shadow-green-500/40 transition-all"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[#0B1F3A] border-2 border-blue-500/60 flex items-center justify-center shadow-2xl shadow-blue-500/30 transition-all hover:border-blue-400"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         initial={{ scale: 0, opacity: 0 }}
@@ -160,8 +170,8 @@ export default function WhatsAppAgent() {
         transition={{ delay: 2, type: "spring" }}
         aria-label="Chat with Isaac's AI assistant"
       >
-        <FaWhatsapp size={28} className="text-white" />
-        <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-30" />
+        <AIAvatar size={38} />
+        <span className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-20" />
       </motion.button>
 
       {/* Chat window */}
@@ -193,12 +203,12 @@ export default function WhatsAppAgent() {
               </button>
             </div>
 
-            {/* Name capture screen */}
+            {/* Name capture */}
             {!userName ? (
               <div className="flex-1 bg-[#0a0f1e] flex flex-col items-center justify-center p-8 gap-6">
                 <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center mx-auto mb-4">
-                    <Bot size={32} className="text-green-400" />
+                  <div className="w-16 h-16 rounded-full bg-[#0B1F3A] border-2 border-blue-500/40 flex items-center justify-center mx-auto mb-4">
+                    <AIAvatar size={44} />
                   </div>
                   <p className="text-white font-semibold text-base">Welcome! 👋</p>
                   <p className="text-slate-400 text-sm mt-1">What&apos;s your name so I can greet you properly?</p>
@@ -227,7 +237,6 @@ export default function WhatsAppAgent() {
                 <div className="flex-1 overflow-y-auto bg-[#0a0f1e] p-4 space-y-3 min-h-0 max-h-80">
                   {messages.map((msg) => (
                     <div key={msg.id} className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                      {/* Avatar */}
                       {msg.role === "bot" ? (
                         <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
                           <Image src={IMAGES.profile} alt="Isaac" width={28} height={28} className="object-cover object-top w-full h-full" />
@@ -245,7 +254,6 @@ export default function WhatsAppAgent() {
                     </div>
                   ))}
 
-                  {/* Typing indicator */}
                   {typing && (
                     <div className="flex items-end gap-2">
                       <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
