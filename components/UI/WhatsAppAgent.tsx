@@ -20,6 +20,7 @@ const BOT_NAME     = "Isaac's Assistant";
 // Chat width / height constants used for viewport clamping
 const CHAT_W = 384; // ~w-96
 const CHAT_H = 600;
+const HANDLE_H = 10; // bottom drag handle height in px
 
 function getBotReply(input: string, name: string): { text: string; whatsappMsg?: string } {
   const q = input.toLowerCase().trim();
@@ -151,7 +152,8 @@ export default function WhatsAppAgent() {
   const [sessionId,  setSessionId]  = useState("");
 
   // Drag state — null means "use default bottom-right anchor via CSS"
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [pos,      setPos]      = useState<{ x: number; y: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   const bottomRef  = useRef<HTMLDivElement>(null);
   const chatRef    = useRef<HTMLDivElement>(null);
@@ -188,13 +190,11 @@ export default function WhatsAppAgent() {
     return () => window.removeEventListener("resize", onResize);
   }, [pos]);
 
-  /* ── Drag: pointer down on header ── */
-  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    // Only drag on the header bar itself, not on buttons inside it
+  /* ── Shared drag start (used by header AND bottom handle) ── */
+  const startDrag = useCallback((e: React.PointerEvent<HTMLElement>) => {
     if ((e.target as HTMLElement).closest("button")) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     didDrag.current = false;
-
     const rect = chatRef.current?.getBoundingClientRect();
     dragOrigin.current = {
       mx: e.clientX,
@@ -204,17 +204,21 @@ export default function WhatsAppAgent() {
     };
   }, []);
 
-  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLElement>) => {
     if (!dragOrigin.current) return;
     const dx = e.clientX - dragOrigin.current.mx;
     const dy = e.clientY - dragOrigin.current.my;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) didDrag.current = true;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      didDrag.current = true;
+      setDragging(true);
+    }
     if (!didDrag.current) return;
     setPos(clampPos(dragOrigin.current.bx + dx, dragOrigin.current.by + dy));
   }, []);
 
   const onPointerUp = useCallback(() => {
     dragOrigin.current = null;
+    setDragging(false);
   }, []);
 
   /* ── Open / minimize helpers ── */
@@ -327,8 +331,8 @@ export default function WhatsAppAgent() {
             {/* ── Header (drag handle) ── */}
             <div
               className="bg-gradient-to-r from-green-600 to-green-500 px-4 py-3 flex items-center justify-between flex-shrink-0 select-none"
-              style={{ cursor: didDrag.current ? "grabbing" : "grab" }}
-              onPointerDown={onPointerDown}
+              style={{ cursor: dragging ? "grabbing" : "grab" }}
+              onPointerDown={startDrag}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
               onPointerCancel={onPointerUp}
@@ -408,7 +412,7 @@ export default function WhatsAppAgent() {
                 ) : (
                   <>
                     {/* Messages */}
-                    <div className="flex-1 overflow-y-auto bg-[#0a0f1e] p-4 space-y-3 min-h-0 max-h-72">
+                    <div className="flex-1 overflow-y-auto bg-[#0a0f1e] p-4 space-y-3 min-h-0" style={{ maxHeight: "calc(100vh - 320px)", minHeight: 180 }}>
                       {messages.map((msg) => (
                         <div key={msg.id} className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
                           {msg.role === "bot" ? (
@@ -492,6 +496,19 @@ export default function WhatsAppAgent() {
                 )}
               </>
             )}
+
+            {/* ── Bottom drag handle ── */}
+            <div
+              className="flex-shrink-0 flex items-center justify-center bg-slate-900 border-t border-white/5 select-none"
+              style={{ height: HANDLE_H, cursor: dragging ? "grabbing" : "grab" }}
+              onPointerDown={startDrag}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+              aria-label="Drag to move chat window"
+            >
+              <div className="w-8 h-1 rounded-full bg-slate-600" />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

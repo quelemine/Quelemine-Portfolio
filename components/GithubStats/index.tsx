@@ -139,13 +139,10 @@ export default function GithubStats() {
 
           {loadState === "ok" && (
             data?.chartSvg ? (
-              <div className="glass-card rounded-2xl p-5 overflow-hidden">
-                <p className="text-slate-500 text-xs font-medium uppercase tracking-widest mb-3 text-center">
-                  Contribution Activity
-                </p>
-                {/* Inline SVG — no image load events, no CORS, no timing issues */}
+              <div className="glass-card rounded-2xl overflow-hidden">
+                {/* Inline SVG fills the card edge-to-edge */}
                 <div
-                  className="w-full rounded-lg [&>svg]:w-full [&>svg]:h-auto"
+                  className="w-full [&>svg]:w-full [&>svg]:h-auto [&>svg]:display-block"
                   dangerouslySetInnerHTML={{ __html: data.chartSvg }}
                   aria-label={`${GITHUB_USER}'s GitHub contribution graph`}
                 />
