@@ -71,13 +71,13 @@ export default function Education() {
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-4 text-sm text-slate-500 mb-3">
+                    <div className="flex flex-wrap gap-4 text-sm text-slate-600 mb-3">
                       <span className="flex items-center gap-1.5">
-                        <MapPin size={14} className="text-slate-400" />
+                        <MapPin size={14} className="text-slate-400" aria-hidden="true" />
                         {edu.location}
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <Calendar size={14} className="text-slate-400" />
+                        <Calendar size={14} className="text-slate-400" aria-hidden="true" />
                         {edu.period}
                       </span>
                     </div>

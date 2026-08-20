@@ -38,7 +38,7 @@ export const socialLinks = [
   {
     id: "instagram",
     name: "Instagram",
-    url: "#",
+    url: "https://www.instagram.com/",
     icon: "Instagram",
     color: "hover:text-purple-400",
     bg: "hover:bg-purple-400/10",
@@ -47,7 +47,7 @@ export const socialLinks = [
   {
     id: "twitter",
     name: "X (Twitter)",
-    url: "#",
+    url: "https://x.com/",
     icon: "Twitter",
     color: "hover:text-sky-400",
     bg: "hover:bg-sky-400/10",

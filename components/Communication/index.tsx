@@ -53,8 +53,8 @@ export default function Communication() {
               <div className={`w-12 h-12 rounded-xl ${skill.bg} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`}>
                 <skill.icon size={22} className={skill.color} />
               </div>
-              <h3 className="text-slate-900 font-semibold text-sm mb-2">{skill.title}</h3>
-              <p className="text-slate-500 text-xs leading-relaxed">{skill.desc}</p>
+              <h3 className="text-slate-900 font-bold text-base mb-2">{skill.title}</h3>
+              <p className="text-slate-500 text-sm leading-relaxed">{skill.desc}</p>
             </motion.div>
           ))}
         </div>

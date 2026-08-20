@@ -54,38 +54,75 @@ export default function Contact() {
             className="space-y-6"
           >
             <div className="glass-card rounded-2xl p-6">
-              <h3 className="text-slate-900 font-bold text-lg mb-4">Let&apos;s Connect</h3>
+              <h3 className="text-slate-900 font-bold text-lg mb-1">Let&apos;s Connect</h3>
               <p className="text-slate-500 text-sm leading-relaxed mb-6">
                 I&apos;m currently open to new opportunities, collaborations, and interesting projects.
                 Whether you have a job offer, a project idea, or just want to say hello — my inbox is always open.
               </p>
 
-              <div className="space-y-4">
-                {[
-                  { icon: Mail, label: "Email", value: "quelemineisaacl@gmail.com", href: "mailto:quelemineisaacl@gmail.com", color: "text-blue-600", bg: "bg-blue-100" },
-                  { icon: MapPin, label: "Location", value: "Kigali, Rwanda", href: null, color: "text-blue-600", bg: "bg-blue-100" },
-                  { icon: Phone, label: "Phone (Rwanda)", value: "+250 793 148 624", href: "tel:+250793148624", color: "text-blue-600", bg: "bg-blue-100" },
-                  { icon: FaWhatsapp, label: "WhatsApp (Liberia)", value: "+231 880 857 969", href: "https://wa.me/231880857969?text=Hi%20Isaac!%20I%20found%20you%20through%20your%20portfolio.", color: "text-green-600", bg: "bg-green-100" },
-                  { icon: FaWhatsapp, label: "WhatsApp (Turkey)", value: "+90 533 872 1736", href: "https://wa.me/905338721736?text=Hi%20Isaac!%20I%20found%20you%20through%20your%20portfolio.", color: "text-green-600", bg: "bg-green-100" },
-                  { icon: FaLinkedin, label: "LinkedIn", value: "isaac-l-quelemine", href: "https://www.linkedin.com/in/isaac-l-quelemine-873633132", color: "text-blue-600", bg: "bg-blue-100" },
-                  { icon: FaGithub, label: "GitHub", value: "quelemine", href: "https://github.com/quelemine", color: "text-slate-700", bg: "bg-slate-100" },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-lg ${item.bg} flex items-center justify-center flex-shrink-0`}>
-                      <item.icon size={16} className={item.color} />
-                    </div>
-                    <div>
-                      <p className="text-slate-500 text-xs">{item.label}</p>
-                      {item.href ? (
-                        <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-slate-900 text-sm hover:text-blue-600 transition-colors">
+              {/* Two contact cards — 3 items each */}
+              <div className="grid grid-cols-2 gap-4 mb-5">
+                {/* Card 1 */}
+                <div className="rounded-xl border border-slate-100 bg-white p-4 space-y-4 shadow-sm">
+                  {[
+                    { icon: Mail,       label: "Email",           value: "quelemineisaacl@gmail.com", href: "mailto:quelemineisaacl@gmail.com",                                                         iconColor: "text-blue-600",  iconBg: "bg-blue-50" },
+                    { icon: Phone,      label: "Phone (Rwanda)",  value: "+250 793 148 624",          href: "tel:+250793148624",                                                                           iconColor: "text-blue-600",  iconBg: "bg-blue-50" },
+                    { icon: FaWhatsapp, label: "WhatsApp (LR)",   value: "+231 880 857 969",          href: "https://wa.me/231880857969?text=Hi%20Isaac!%20I%20found%20you%20through%20your%20portfolio.", iconColor: "text-green-600", iconBg: "bg-green-50" },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg ${item.iconBg} flex items-center justify-center flex-shrink-0`}>
+                        <item.icon size={15} className={item.iconColor} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">{item.label}</p>
+                        <a href={item.href} target="_blank" rel="noopener noreferrer"
+                          className="text-slate-800 text-xs font-semibold hover:text-blue-600 transition-colors break-all leading-snug">
                           {item.value}
                         </a>
-                      ) : (
-                        <p className="text-slate-900 text-sm">{item.value}</p>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+                {/* Card 2 */}
+                <div className="rounded-xl border border-slate-100 bg-white p-4 space-y-4 shadow-sm">
+                  {[
+                    { icon: FaWhatsapp, label: "WhatsApp (TR)", value: "+90 533 872 1736",    href: "https://wa.me/905338721736?text=Hi%20Isaac!%20I%20found%20you%20through%20your%20portfolio.", iconColor: "text-green-600",  iconBg: "bg-green-50" },
+                    { icon: FaLinkedin, label: "LinkedIn",      value: "Isaac L. Quelemine",   href: "https://www.linkedin.com/in/isaac-l-quelemine-873633132",                                     iconColor: "text-blue-700",   iconBg: "bg-blue-50" },
+                    { icon: FaGithub,   label: "GitHub",        value: "quelemine",           href: "https://github.com/quelemine",                                                               iconColor: "text-slate-700",  iconBg: "bg-slate-100" },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg ${item.iconBg} flex items-center justify-center flex-shrink-0`}>
+                        <item.icon size={15} className={item.iconColor} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">{item.label}</p>
+                        <a href={item.href} target="_blank" rel="noopener noreferrer"
+                          className="text-slate-800 text-xs font-semibold hover:text-blue-600 transition-colors break-all leading-snug">
+                          {item.value}
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Location map */}
+              <div className="rounded-xl overflow-hidden border border-slate-100 shadow-sm">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+                  <MapPin size={14} className="text-indigo-600 flex-shrink-0" />
+                  <span className="text-slate-700 text-xs font-semibold">Kigali, Rwanda</span>
+                </div>
+                <iframe
+                  title="Kigali, Rwanda"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d63799.41051493849!2d30.0187!3d-1.9441!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x19dca4258ed8e797%3A0xa0bc47a2f5e0f5e!2sKigali%2C%20Rwanda!5e0!3m2!1sen!2sus!4v1700000000000"
+                  width="100%"
+                  height="180"
+                  style={{ border: 0, display: "block" }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
               </div>
             </div>
 

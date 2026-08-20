@@ -160,12 +160,12 @@ export default function Projects() {
                   {/* Tech stack */}
                   <div className="flex flex-wrap gap-1.5 mb-4">
                     {project.technologies.slice(0, 4).map((tech) => (
-                      <span key={tech} className="px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700 border border-blue-200">
+                      <span key={tech} className="px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                         {tech}
                       </span>
                     ))}
                     {project.technologies.length > 4 && (
-                      <span className="px-2 py-0.5 rounded text-xs text-slate-400">+{project.technologies.length - 4}</span>
+                      <span className="px-2 py-0.5 rounded text-xs font-medium text-slate-400">+{project.technologies.length - 4} more</span>
                     )}
                   </div>
 
@@ -173,30 +173,35 @@ export default function Projects() {
                   <div className="flex items-center gap-3 flex-wrap">
                     {project.github && (
                       <a href={project.github} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-xs transition-colors">
+                        aria-label={`View source code for ${project.title} on GitHub`}
+                        className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">
                         <FaGithub size={14} /> Code
                       </a>
                     )}
                     {isSicm(project.id) ? (
                       <>
                         <button onClick={() => setSicmOpen(true)}
-                          className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs transition-colors">
+                          aria-label={`Preview ${project.title}`}
+                          className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">
                           <Monitor size={14} /> Preview
                         </button>
                         <a href={project.demo} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-xs transition-colors">
+                          aria-label={`Open ${project.title} website`}
+                          className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">
                           <ExternalLink size={14} /> Open Site
                         </a>
                       </>
                     ) : (
                       <a href={project.demo} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs transition-colors">
+                        aria-label={`${project.github ? "Live demo" : "View project"} for ${project.title}`}
+                        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">
                         <ExternalLink size={14} /> {project.github ? "Live Demo" : "View Project"}
                       </a>
                     )}
                     <button
                       onClick={() => openWithMessage(`Tell me about the project: ${project.title}`)}
-                      className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 text-xs font-medium transition-colors"
+                      aria-label={`Ask AI about ${project.title}`}
+                      className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
                       <MessageSquare size={12} /> Ask AI
                     </button>

@@ -60,8 +60,8 @@ export default function About() {
                     <item.icon size={15} className="text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-slate-800 text-xs font-semibold">{item.label}</p>
-                    <p className="text-slate-500 text-xs mt-0.5">{item.desc}</p>
+                    <p className="text-slate-800 text-sm font-semibold">{item.label}</p>
+                    <p className="text-slate-500 text-sm mt-0.5">{item.desc}</p>
                   </div>
                 </motion.div>
               ))}

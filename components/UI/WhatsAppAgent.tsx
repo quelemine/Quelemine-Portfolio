@@ -63,6 +63,11 @@ function getBotReply(input: string, name: string): { text: string; whatsappMsg?:
       whatsappMsg: `Hi Isaac! I'm ${name}, reaching out from your portfolio.`,
     };
 
+  if (/sicm|church management|church system|sicm church/.test(q))
+    return {
+      text: `The SICM Church Management System is a faith-based organization supported by an outstanding website and a comprehensive management system designed to organize and streamline the day-to-day activities of its ministries across Liberia. The platform helps improve coordination, administration, communication, and the overall management of ministry activities.\n\nYou can visit the SICM website here: https://sicmchurch.gt.tc/index.php?i=1 🙏`,
+    };
+
   if (/hello|hi|hey|good|morning|afternoon|evening|howdy/.test(q))
     return {
       text: `Hey ${name}! 👋 How can I help you today? You can ask about Isaac's skills, projects, education, or I can connect you with him directly on WhatsApp.`,

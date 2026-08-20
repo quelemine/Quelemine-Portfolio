@@ -73,9 +73,9 @@ export default function Skills() {
                       <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center group-hover:bg-blue-100 transition-colors duration-300 shrink-0">
                         <Icon size={19} className="text-blue-600" />
                       </div>
-                      <h3 className="text-slate-800 font-bold text-sm leading-snug">{cat.title}</h3>
+                      <h3 className="text-slate-800 font-bold text-base leading-snug">{cat.title}</h3>
                     </div>
-                    <span className="text-[11px] font-semibold text-blue-500 bg-blue-50 border border-blue-100 rounded-full px-2.5 py-0.5 shrink-0">
+                    <span className="text-xs font-semibold text-blue-500 bg-blue-50 border border-blue-100 rounded-full px-2.5 py-0.5 shrink-0" aria-label={`${cat.tags.length + cat.capabilities.length} skills`}>
                       {cat.tags.length + cat.capabilities.length}
                     </span>
                   </div>
@@ -89,7 +89,9 @@ export default function Skills() {
                         animate={inView ? { opacity: 1, scale: 1 } : {}}
                         transition={{ duration: 0.25, delay: i * 0.1 + j * 0.05 }}
                         onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-                        className={`skill-badge px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                        aria-pressed={activeTag === tag}
+                        aria-label={`View info for ${tag}`}
+                        className={`skill-badge px-3 py-1 rounded-full text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                           activeTag === tag ? "ring-2 ring-blue-400 bg-blue-100" : "cursor-pointer hover:ring-1 hover:ring-blue-300"
                         }`}
                       >
@@ -109,7 +111,7 @@ export default function Skills() {
                         initial={{ opacity: 0, x: -6 }}
                         animate={inView ? { opacity: 1, x: 0 } : {}}
                         transition={{ duration: 0.25, delay: i * 0.1 + (cat.tags.length + j) * 0.05 }}
-                        className="flex items-center gap-2.5 text-xs text-slate-500"
+                        className="flex items-center gap-2.5 text-sm text-slate-500"
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-300 shrink-0" />
                         {cap}
@@ -134,22 +136,23 @@ export default function Skills() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <p className="text-slate-800 font-bold text-sm mb-3">{activeTag}</p>
-                  <div className="grid sm:grid-cols-3 gap-4 text-xs">
+                  <p className="text-slate-800 font-bold text-base mb-3">{activeTag}</p>
+                  <div className="grid sm:grid-cols-3 gap-4 text-sm">
                     <div>
-                      <p className="text-slate-400 uppercase tracking-widest text-[10px] mb-1">Used for</p>
+                      <p className="text-slate-400 uppercase tracking-widest text-xs font-semibold mb-1">Used for</p>
                       <p className="text-slate-700">{info.use}</p>
                     </div>
                     <div>
-                      <p className="text-slate-400 uppercase tracking-widest text-[10px] mb-1">How Isaac uses it</p>
+                      <p className="text-slate-400 uppercase tracking-widest text-xs font-semibold mb-1">How Isaac uses it</p>
                       <p className="text-slate-700">{info.how}</p>
                     </div>
                     <div>
-                      <p className="text-slate-400 uppercase tracking-widest text-[10px] mb-1">Related</p>
+                      <p className="text-slate-400 uppercase tracking-widest text-xs font-semibold mb-1">Related</p>
                       <div className="flex flex-wrap gap-1">
                         {info.related.map((r) => (
                           <button key={r} onClick={() => setActiveTag(r)}
-                            className="skill-badge px-2 py-0.5 rounded-full text-[11px] font-medium hover:ring-1 hover:ring-blue-300">
+                            aria-label={`View info for ${r}`}
+                            className="skill-badge px-2 py-0.5 rounded-full text-xs font-medium hover:ring-1 hover:ring-blue-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                             {r}
                           </button>
                         ))}
@@ -157,7 +160,7 @@ export default function Skills() {
                     </div>
                   </div>
                 </div>
-                <button onClick={() => setActiveTag(null)} className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0">
+                <button onClick={() => setActiveTag(null)} aria-label="Close skill info" className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">
                   <X size={16} />
                 </button>
               </div>
@@ -180,8 +183,8 @@ export default function Skills() {
                 <Code2 size={18} className="text-blue-600" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-blue-500 uppercase tracking-widest">At a Glance</p>
-                <h3 className="text-slate-800 font-bold text-base">Core Technology Stack</h3>
+                <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest">At a Glance</p>
+                <h3 className="text-slate-800 font-bold text-lg">Core Technology Stack</h3>
               </div>
             </div>
 
@@ -194,7 +197,7 @@ export default function Skills() {
                 { label: "Tools",    color: "border-slate-400",  techs: ["Git", "GitHub", "Linux"] },
               ] as { label: string; color: string; techs: string[] }[]).map((group, gi) => (
                 <div key={group.label} className={`pl-4 border-l-2 ${group.color}`}>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">{group.label}</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">{group.label}</p>
                   <div className="flex flex-col gap-2">
                     {group.techs.map((tech, ti) => (
                       <motion.span

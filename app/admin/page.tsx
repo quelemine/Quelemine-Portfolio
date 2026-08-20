@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, ChevronDown, ChevronUp, LogOut, MessageSquare, User, Clock, Filter } from "lucide-react";
 import { getAllSessions, type ChatSession } from "@/lib/chatLogger";
 
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "isaac@admin2024";
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString("en-US", {

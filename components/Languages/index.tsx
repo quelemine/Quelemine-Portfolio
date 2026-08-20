@@ -50,10 +50,10 @@ export default function Languages() {
             >
               <div className="text-4xl mb-3">{lang.flag}</div>
               <h3 className="text-slate-900 font-bold text-base mb-1">{lang.name}</h3>
-              <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium border mb-3 ${badgeColors[lang.badge]}`}>
+              <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold border mb-3 ${badgeColors[lang.badge]}`}>
                 {lang.badge}
               </span>
-              <p className="text-slate-500 text-xs mb-4 leading-relaxed">{lang.level}</p>
+              <p className="text-slate-500 text-sm mb-4 leading-relaxed">{lang.level}</p>
 
               {/* Progress bar */}
               <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
@@ -64,7 +64,7 @@ export default function Languages() {
                   transition={{ duration: 1, delay: i * 0.1 + 0.3, ease: "easeOut" }}
                 />
               </div>
-              <p className="text-slate-400 text-xs mt-1">{lang.proficiency}%</p>
+              <p className="text-slate-400 text-sm mt-1">{lang.proficiency}%</p>
             </motion.div>
           ))}
         </div>
@@ -77,8 +77,8 @@ export default function Languages() {
           className="flex justify-center mt-10"
         >
           <div className="flex items-center gap-2 text-slate-500 text-sm">
-            <Globe size={16} className="text-blue-600" />
-            <span className="text-slate-500 text-sm">Communicating across cultures and continents</span>
+            <Globe size={16} className="text-blue-600" aria-hidden="true" />
+            <span>Communicating across cultures and continents</span>
           </div>
         </motion.div>
       </div>
