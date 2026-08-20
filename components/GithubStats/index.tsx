@@ -1,10 +1,13 @@
 "use client";
 import { motion, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
-import { Star, GitFork, Code2, Users, ExternalLink, AlertCircle, Loader2 } from "lucide-react";
+import { Star, GitFork, Code2, Users, ExternalLink, AlertCircle } from "lucide-react";
 import { FaGithub } from "react-icons/fa6";
 
 interface GitHubData { repos: number; followers: number; stars: number; forks: number; }
+
+const GITHUB_USER = "quelemine";
+const CHART_URL   = `https://ghchart.rshah.org/${GITHUB_USER}`;
 
 const techBadges = [
   { name: "Java",        color: "bg-orange-50 text-orange-700 border-orange-200" },
@@ -29,28 +32,56 @@ function StatSkeleton() {
   );
 }
 
+function UnavailableCard() {
+  return (
+    <div className="glass-card rounded-2xl p-5 flex items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <AlertCircle size={20} className="text-slate-400 flex-shrink-0" aria-hidden="true" />
+        <p className="text-slate-500 text-sm">GitHub contribution activity is temporarily unavailable.</p>
+      </div>
+      <a
+        href={`https://github.com/${GITHUB_USER}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn-outline inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0"
+      >
+        <FaGithub size={15} aria-hidden="true" /> View Profile
+      </a>
+    </div>
+  );
+}
+
 export default function GithubStats() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
-  const [data, setData] = useState<GitHubData | null>(null);
-  const [loadState, setLoadState] = useState<"loading" | "ok" | "error">("loading");
-  const [streakError, setStreakError] = useState(false);
 
+  const [data,        setData]        = useState<GitHubData | null>(null);
+  const [statsState,  setStatsState]  = useState<"loading" | "ok" | "error">("loading");
+  const [chartState,  setChartState]  = useState<"loading" | "ok" | "error">("loading");
+
+  // Fetch stats once — stable empty-dep array, no re-fetch on re-render
   useEffect(() => {
+    let cancelled = false;
     fetch("/api/github")
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((d: GitHubData) => { setData(d); setLoadState("ok"); })
-      .catch(() => setLoadState("error"));
+      .then((d: GitHubData) => { if (!cancelled) { setData(d); setStatsState("ok"); } })
+      .catch(() => { if (!cancelled) setStatsState("error"); });
+    return () => { cancelled = true; };
   }, []);
 
-  const stats = data
-    ? [
-        { icon: Code2,    label: "Repositories", value: String(data.repos),      color: "text-blue-600",   bg: "bg-blue-100" },
-        { icon: Star,     label: "Stars Earned",  value: String(data.stars),      color: "text-yellow-600", bg: "bg-yellow-100" },
-        { icon: GitFork,  label: "Forks",         value: String(data.forks),      color: "text-teal-600",   bg: "bg-teal-100" },
-        { icon: Users,    label: "Followers",     value: String(data.followers),  color: "text-purple-600", bg: "bg-purple-100" },
-      ]
-    : null;
+  // Hard timeout for the chart image — if it hasn't loaded in 8 s, show fallback
+  useEffect(() => {
+    if (chartState !== "loading") return;
+    const t = setTimeout(() => setChartState("error"), 8000);
+    return () => clearTimeout(t);
+  }, [chartState]);
+
+  const stats = data ? [
+    { icon: Code2,   label: "Repositories", value: String(data.repos),     color: "text-blue-600",   bg: "bg-blue-100" },
+    { icon: Star,    label: "Stars Earned",  value: String(data.stars),     color: "text-yellow-600", bg: "bg-yellow-100" },
+    { icon: GitFork, label: "Forks",         value: String(data.forks),     color: "text-teal-600",   bg: "bg-teal-100" },
+    { icon: Users,   label: "Followers",     value: String(data.followers), color: "text-purple-600", bg: "bg-purple-100" },
+  ] : null;
 
   return (
     <section id="github" className="section-padding relative section-alt" ref={ref} aria-label="GitHub Statistics">
@@ -69,26 +100,17 @@ export default function GithubStats() {
           <h2 className="text-3xl sm:text-4xl font-bold section-title">GitHub Statistics</h2>
         </motion.div>
 
-        {/* Stats cards */}
+        {/* ── Stat cards ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-          {loadState === "loading" && Array.from({ length: 4 }).map((_, i) => <StatSkeleton key={i} />)}
+          {statsState === "loading" && Array.from({ length: 4 }).map((_, i) => <StatSkeleton key={i} />)}
 
-          {loadState === "error" && (
-            <div className="col-span-2 lg:col-span-4 glass-card rounded-2xl p-6 flex flex-col items-center gap-3 text-center">
-              <AlertCircle size={28} className="text-slate-400" aria-hidden="true" />
-              <p className="text-slate-600 font-medium">GitHub activity is temporarily unavailable.</p>
-              <a
-                href="https://github.com/quelemine"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-outline inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium"
-              >
-                <FaGithub size={16} aria-hidden="true" /> View GitHub Profile
-              </a>
+          {statsState === "error" && (
+            <div className="col-span-2 lg:col-span-4">
+              <UnavailableCard />
             </div>
           )}
 
-          {loadState === "ok" && stats && stats.map((stat, i) => (
+          {statsState === "ok" && stats && stats.map((stat, i) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 30 }}
@@ -106,42 +128,37 @@ export default function GithubStats() {
           ))}
         </div>
 
-        {/* Streak image — working service, with loading + graceful fallback */}
+        {/* ── Contribution graph ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.3 }}
           className="mb-10"
         >
-          {!streakError ? (
-            <div className="glass-card rounded-2xl p-4 overflow-hidden relative">
-              {/* Loading shimmer behind the image */}
-              <div className="absolute inset-4 rounded-lg bg-slate-100 animate-pulse" aria-hidden="true" />
-              <img
-                src="https://github-readme-streak-stats.herokuapp.com/?user=quelemine&theme=tokyonight&background=0d1117&border=1e293b&stroke=3b82f6&ring=60a5fa&fire=f59e0b&currStreakLabel=60a5fa"
-                alt="Isaac Quelemine's GitHub contribution streak"
-                className="relative w-full rounded-lg"
-                onLoad={(e) => { (e.target as HTMLImageElement).previousElementSibling?.remove(); }}
-                onError={() => setStreakError(true)}
-              />
-            </div>
+          {chartState === "error" ? (
+            <UnavailableCard />
           ) : (
-            <div className="glass-card rounded-2xl p-6 flex flex-col items-center gap-3 text-center">
-              <AlertCircle size={24} className="text-slate-400" aria-hidden="true" />
-              <p className="text-slate-600 font-medium">GitHub activity is temporarily unavailable.</p>
-              <a
-                href="https://github.com/quelemine"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-outline inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium"
-              >
-                <FaGithub size={16} aria-hidden="true" /> View GitHub Profile
-              </a>
+            <div className="glass-card rounded-2xl p-5 overflow-hidden">
+              <p className="text-slate-500 text-xs font-medium uppercase tracking-widest mb-3 text-center">
+                Contribution Activity
+              </p>
+              {/* Shimmer shown while image loads */}
+              {chartState === "loading" && (
+                <div className="w-full h-32 rounded-lg bg-slate-100 animate-pulse" aria-hidden="true" />
+              )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={CHART_URL}
+                alt={`${GITHUB_USER}'s GitHub contribution graph`}
+                className={`w-full rounded-lg transition-opacity duration-300 ${chartState === "ok" ? "opacity-100" : "opacity-0 absolute"}`}
+                onLoad={() => setChartState("ok")}
+                onError={() => setChartState("error")}
+              />
             </div>
           )}
         </motion.div>
 
-        {/* Tech badges */}
+        {/* ── Tech badges ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -158,7 +175,7 @@ export default function GithubStats() {
           </div>
         </motion.div>
 
-        {/* GitHub CTA */}
+        {/* ── GitHub CTA ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -166,7 +183,7 @@ export default function GithubStats() {
           className="text-center mt-8"
         >
           <a
-            href="https://github.com/quelemine"
+            href={`https://github.com/${GITHUB_USER}`}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-outline inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium"

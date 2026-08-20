@@ -43,6 +43,9 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary);
 }
 
+/* Allow Tailwind text-* utilities to override the heading base color */
+:is(h1, h2, h3, h4, h5, h6)[class*="text-"] { color: revert-layer; }
+
 p, span, a, li, label, input, textarea, button {
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
 }
@@ -145,11 +148,22 @@ p, span, a, li, label, input, textarea, button {
   border-radius: 0.875rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
 }
 
 .glass-card:hover {
   border-color: var(--border-hover);
   box-shadow: 0 8px 24px rgba(37,99,235,0.08), 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* Ensure images render above any absolute overlays inside glass-card */
+.glass-card img {
+  position: relative;
+  z-index: 10;
+}
+
+.glass-card .absolute {
+  z-index: 1;
 }
 
 /* glass — navbar / overlays only (stays dark) */

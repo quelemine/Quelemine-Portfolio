@@ -1,7 +1,7 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, MessageCircle, ArrowRight } from "lucide-react";
+import { Minus, Send, MessageCircle, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { IMAGES } from "@/lib/images";
 import { FaWhatsapp } from "react-icons/fa6";
@@ -9,11 +9,7 @@ import AIAvatar from "@/components/UI/AIAvatar";
 import { createSession, logMessage } from "@/lib/chatLogger";
 import { useChatContext } from "@/context/ChatContext";
 
-interface Message {
-  id: number;
-  role: "bot" | "user";
-  text: string;
-}
+interface Message { id: number; role: "bot" | "user"; text: string; }
 
 const WA_PRIMARY   = "+231880857969";
 const WA_SECONDARY = "+905338721736";
@@ -21,8 +17,17 @@ const PHONE_RW     = "+250793148624";
 const EMAIL        = "quelemineisaacl@gmail.com";
 const BOT_NAME     = "Isaac's Assistant";
 
+// Chat width / height constants used for viewport clamping
+const CHAT_W = 384; // ~w-96
+const CHAT_H = 600;
+
 function getBotReply(input: string, name: string): { text: string; whatsappMsg?: string } {
   const q = input.toLowerCase().trim();
+
+  if (/who is isaac|tell me about isaac|about isaac|introduce|isaac quelemine|quelemine/.test(q))
+    return {
+      text: `Isaac L. Quelemine is a Liberian Junior Software Engineer and Full Stack Developer currently based in Kigali, Rwanda. He specializes in React.js, Java, Spring Boot, PHP, MySQL, and PostgreSQL. He holds an Associate Degree in Computer Programming from Rauf Denktas University (Northern Cyprus) and is currently studying Software Engineering at UNILAK (Rwanda) and Information Technology at BYU Pathway Worldwide. He is open to full-time, part-time, and freelance opportunities. Want to know more about his skills, projects, or how to contact him, ${name}? 😊`,
+    };
 
   if (/hire|job|work|opportunit|recruit|position|role|employ/.test(q))
     return {
@@ -38,17 +43,17 @@ function getBotReply(input: string, name: string): { text: string; whatsappMsg?:
 
   if (/skill|tech|stack|react|java|php|spring|mysql|language/.test(q))
     return {
-      text: `Isaac's core stack includes React.js, Java, Spring Boot, PHP, MySQL, and PostgreSQL. He's a Full Stack Developer with strong software engineering fundamentals. Anything else you'd like to know, ${name}? ⚡`,
+      text: `Isaac's core stack includes React.js, Java, Spring Boot, PHP, MySQL, and PostgreSQL — covering both frontend and backend development. He also works with HTML5, CSS3, JavaScript, Git, and Linux. Anything else you'd like to know, ${name}? ⚡`,
     };
 
   if (/education|degree|university|school|study|student/.test(q))
     return {
-      text: `Isaac holds an Associate Degree in Computer Programming from Rauf Denktas University (Northern Cyprus), and is currently studying Software Engineering at UNILAK (Rwanda) and IT at BYU Pathway Worldwide. 🎓`,
+      text: `Isaac holds an Associate Degree in Computer Programming from Rauf Denktas University (Northern Cyprus). He is currently studying Software Engineering at UNILAK (University of Lay Adventist of Kigali, Rwanda) and Information Technology at BYU Pathway Worldwide – Ensign College (online). 🎓`,
     };
 
   if (/location|where|country|rwanda|liberia|based/.test(q))
     return {
-      text: `Isaac is a Liberian software engineer currently based in Kigali, Rwanda. He has international experience across Liberia, Northern Cyprus, and Rwanda. 🌍`,
+      text: `Isaac is a Liberian software engineer currently based in Kigali, Rwanda. His background spans Liberia, Northern Cyprus, and Rwanda. 🌍`,
     };
 
   if (/email|mail|contact|reach|message/.test(q))
@@ -65,7 +70,7 @@ function getBotReply(input: string, name: string): { text: string; whatsappMsg?:
 
   if (/sicm|church management|church system|sicm church/.test(q))
     return {
-      text: `The SICM Church Management System is a faith-based organization supported by an outstanding website and a comprehensive management system designed to organize and streamline the day-to-day activities of its ministries across Liberia. The platform helps improve coordination, administration, communication, and the overall management of ministry activities.\n\nYou can visit the SICM website here: https://sicmchurch.gt.tc/index.php?i=1 🙏`,
+      text: `The SICM Church Management System is a full-stack web application built for SICM — a faith-based organization in Liberia. It features member registration, attendance tracking, event scheduling, and administrative dashboards, built with PHP and MySQL. It also supports the organization's website to streamline ministry coordination and communication across Liberia.\n\nVisit the SICM website: https://sicmchurch.gt.tc/index.php?i=1 🙏`,
     };
 
   if (/hello|hi|hey|good|morning|afternoon|evening|howdy/.test(q))
@@ -75,7 +80,7 @@ function getBotReply(input: string, name: string): { text: string; whatsappMsg?:
 
   if (/portfolio|website|built/.test(q))
     return {
-      text: `Isaac's portfolio at queleminetech.info showcases full-stack applications, backend APIs, database systems, and frontend interfaces. Check out the Projects section above! 🖥️`,
+      text: `Isaac's portfolio at queleminetech.info showcases his full-stack projects including the SICM Church Management System, REST API systems, responsive frontends, and database-driven applications. Check out the Projects section above! 🖥️`,
     };
 
   if (/available|open|free/.test(q))
@@ -122,36 +127,105 @@ const SUGGESTED_QUESTIONS = [
   "How can I contact Isaac?",
 ];
 
-const QUICK_PROMPTS = ["What are his skills?", "I want to hire him", "Let's collaborate", "How to contact Isaac?"];
+/** Clamp chatbox position so it stays fully inside the viewport */
+function clampPos(x: number, y: number): { x: number; y: number } {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const w  = Math.min(CHAT_W, vw - 16);
+  const h  = Math.min(CHAT_H, vh - 16);
+  return {
+    x: Math.max(8, Math.min(x, vw - w - 8)),
+    y: Math.max(8, Math.min(y, vh - h - 8)),
+  };
+}
 
 export default function WhatsAppAgent() {
-  const [open, setOpen]             = useState(false);
-  const [userName, setUserName]     = useState("");
-  const [nameInput, setNameInput]   = useState("");
-  const [messages, setMessages]     = useState<Message[]>([]);
-  const [input, setInput]           = useState("");
-  const [typing, setTyping]         = useState(false);
+  const [open,       setOpen]       = useState(false);
+  const [minimized,  setMinimized]  = useState(false);
+  const [userName,   setUserName]   = useState("");
+  const [nameInput,  setNameInput]  = useState("");
+  const [messages,   setMessages]   = useState<Message[]>([]);
+  const [input,      setInput]      = useState("");
+  const [typing,     setTyping]     = useState(false);
   const [lastWhatsappMsg, setLastWhatsappMsg] = useState("");
-  const [sessionId, setSessionId]   = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [sessionId,  setSessionId]  = useState("");
+
+  // Drag state — null means "use default bottom-right anchor via CSS"
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
+  const bottomRef  = useRef<HTMLDivElement>(null);
+  const chatRef    = useRef<HTMLDivElement>(null);
+  const dragOrigin = useRef<{ mx: number; my: number; bx: number; by: number } | null>(null);
+  const didDrag    = useRef(false);
+
   const { pendingMessage, clearPending } = useChatContext();
 
-  // Open and auto-send when triggered from another component
+  /* ── Pending message from project cards ── */
   useEffect(() => {
     if (pendingMessage && userName) {
       setOpen(true);
+      setMinimized(false);
       sendMessage(pendingMessage);
       clearPending();
     } else if (pendingMessage) {
       setOpen(true);
+      setMinimized(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingMessage]);
 
+  /* ── Auto-scroll to latest message ── */
   useEffect(() => {
-    if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, open, typing]);
+    if (open && !minimized) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, open, minimized, typing]);
 
+  /* ── Clamp position on window resize ── */
+  useEffect(() => {
+    const onResize = () => {
+      if (pos) setPos((p) => p && clampPos(p.x, p.y));
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [pos]);
+
+  /* ── Drag: pointer down on header ── */
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    // Only drag on the header bar itself, not on buttons inside it
+    if ((e.target as HTMLElement).closest("button")) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    didDrag.current = false;
+
+    const rect = chatRef.current?.getBoundingClientRect();
+    dragOrigin.current = {
+      mx: e.clientX,
+      my: e.clientY,
+      bx: rect?.left ?? (window.innerWidth  - Math.min(CHAT_W, window.innerWidth  - 16) - 24),
+      by: rect?.top  ?? (window.innerHeight - Math.min(CHAT_H, window.innerHeight - 16) - 96),
+    };
+  }, []);
+
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragOrigin.current) return;
+    const dx = e.clientX - dragOrigin.current.mx;
+    const dy = e.clientY - dragOrigin.current.my;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) didDrag.current = true;
+    if (!didDrag.current) return;
+    setPos(clampPos(dragOrigin.current.bx + dx, dragOrigin.current.by + dy));
+  }, []);
+
+  const onPointerUp = useCallback(() => {
+    dragOrigin.current = null;
+  }, []);
+
+  /* ── Open / minimize helpers ── */
+  const openChat = () => {
+    setOpen(true);
+    setMinimized(false);
+  };
+
+  const minimize = () => setMinimized(true);
+
+  /* ── Chat logic (unchanged) ── */
   const startChat = (e: React.FormEvent) => {
     e.preventDefault();
     const name = nameInput.trim();
@@ -162,7 +236,6 @@ export default function WhatsAppAgent() {
     const greeting = `Hi ${name}! 👋 I'm Isaac's AI assistant. I can answer questions about his skills, experience, and projects — or connect you with him directly on WhatsApp. How can I help you today?`;
     setMessages([{ id: Date.now(), role: "bot", text: greeting }]);
     logMessage(sid, "bot", greeting);
-    // If there was a pending message from a project card, send it now
     if (pendingMessage) {
       setTimeout(() => { sendMessageWithSession(pendingMessage, sid, name); clearPending(); }, 1000);
     }
@@ -193,179 +266,31 @@ export default function WhatsAppAgent() {
     setInput("");
   };
 
+  /* ── Position style: use drag pos or default bottom-right anchor ── */
+  const posStyle: React.CSSProperties = pos
+    ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto" }
+    : { right: 24, bottom: 96 };
+
   return (
     <>
-      {/* Floating button — AI avatar */}
+      {/* ── Floating button ── */}
       <motion.button
-        onClick={() => setOpen(true)}
+        onClick={openChat}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[#0B1F3A] border-2 border-blue-500/60 flex items-center justify-center shadow-2xl shadow-blue-500/30 transition-all hover:border-blue-400"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 2, type: "spring" }}
-        aria-label="Chat with Isaac's AI assistant"
+        aria-label={open && !minimized ? "AI Assistant is open" : "Open Isaac's AI assistant"}
       >
         <AIAvatar size={38} />
-        <span className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-20" />
+        {(!open || minimized) && (
+          <span className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-20" />
+        )}
       </motion.button>
 
-      {/* Chat window */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 40, scale: 0.95 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 max-h-[600px] flex flex-col rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10"
-          >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-green-600 to-green-500 px-4 py-3 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/30 flex-shrink-0">
-                  <Image src="/images/profile/isaac-profile.jpg" alt="Isaac" width={36} height={36} className="object-cover object-top w-full h-full" />
-                </div>
-                <div>
-                  <p className="text-white font-semibold text-sm">{BOT_NAME}</p>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 bg-green-200 rounded-full animate-pulse" />
-                    <span className="text-green-100 text-xs">Online · Replies instantly</span>
-                  </div>
-                </div>
-              </div>
-              <button onClick={() => setOpen(false)} className="text-white/70 hover:text-white transition-colors p-1">
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Name capture */}
-            {!userName ? (
-              <div className="flex-1 bg-[#0a0f1e] flex flex-col items-center justify-center p-8 gap-6">
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-[#0B1F3A] border-2 border-blue-500/40 flex items-center justify-center mx-auto mb-4">
-                    <AIAvatar size={44} />
-                  </div>
-                  <p className="text-white font-semibold text-base">Welcome! 👋</p>
-                  <p className="text-slate-400 text-sm mt-1">What&apos;s your name so I can greet you properly?</p>
-                </div>
-                <form onSubmit={startChat} className="w-full flex flex-col gap-3">
-                  <input
-                    autoFocus
-                    type="text"
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    placeholder="Enter your name..."
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-green-500/60 transition-colors"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!nameInput.trim()}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
-                  >
-                    Start Chatting <ArrowRight size={15} />
-                  </button>
-                </form>
-                {/* Suggested questions preview */}
-                <div className="w-full">
-                  <p className="text-slate-500 text-xs text-center mb-2">You can ask things like:</p>
-                  <div className="flex flex-col gap-1.5">
-                    {SUGGESTED_QUESTIONS.slice(0, 3).map((q) => (
-                      <div key={q} className="px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/50 text-slate-400 text-xs">
-                        &ldquo;{q}&rdquo;
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto bg-[#0a0f1e] p-4 space-y-3 min-h-0 max-h-80">
-                  {messages.map((msg) => (
-                    <div key={msg.id} className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                      {msg.role === "bot" ? (
-                        <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
-                          <Image src={IMAGES.profile} alt="Isaac" width={28} height={28} className="object-cover object-top w-full h-full" />
-                        </div>
-                      ) : (
-                        <UserAvatar name={userName} size={28} />
-                      )}
-                      <div className={`max-w-[78%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
-                        msg.role === "bot"
-                          ? "bg-slate-800 text-slate-200 rounded-bl-sm"
-                          : "bg-blue-600 text-white rounded-br-sm"
-                      }`}>
-                        {msg.text}
-                      </div>
-                    </div>
-                  ))}
-
-                  {typing && (
-                    <div className="flex items-end gap-2">
-                      <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
-                        <Image src={IMAGES.profile} alt="Isaac" width={28} height={28} className="object-cover object-top w-full h-full" />
-                      </div>
-                      <div className="bg-slate-800 px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1">
-                        {[0, 1, 2].map((i) => (
-                          <motion.span key={i} className="w-1.5 h-1.5 bg-slate-400 rounded-full"
-                            animate={{ y: [0, -4, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  <div ref={bottomRef} />
-                </div>
-
-                {/* Suggested questions */}
-                <div className="bg-slate-900 px-3 py-2 flex-shrink-0 border-t border-white/5">
-                  <p className="text-slate-500 text-[10px] uppercase tracking-widest mb-2 px-1">Suggested questions</p>
-                  <div className="flex flex-col gap-1">
-                    {SUGGESTED_QUESTIONS.map((q) => (
-                      <button key={q} onClick={() => sendMessage(q)}
-                        className="text-left px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors">
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* WhatsApp buttons */}
-                {lastWhatsappMsg && (
-                  <div className="bg-slate-900 px-3 pb-2 flex gap-2 flex-shrink-0">
-                    <button onClick={() => openWhatsApp(WA_PRIMARY, lastWhatsappMsg)}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-xs font-medium transition-colors">
-                      <FaWhatsapp size={14} /> WhatsApp (Liberia)
-                    </button>
-                    <button onClick={() => openWhatsApp(WA_SECONDARY, lastWhatsappMsg)}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-700 hover:bg-green-600 text-white text-xs font-medium transition-colors">
-                      <FaWhatsapp size={14} /> WhatsApp (TR)
-                    </button>
-                  </div>
-                )}
-
-                {/* Input */}
-                <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }}
-                  className="bg-slate-900 border-t border-white/5 px-3 py-3 flex gap-2 flex-shrink-0">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={`Ask me anything, ${userName}...`}
-                    className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-green-500/50 transition-colors"
-                  />
-                  <button type="submit" disabled={!input.trim()}
-                    className="w-9 h-9 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors flex-shrink-0">
-                    <Send size={15} className="text-white" />
-                  </button>
-                </form>
-              </>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Tooltip */}
+      {/* ── Tooltip (only when fully closed) ── */}
       <AnimatePresence>
         {!open && (
           <motion.div
@@ -375,6 +300,198 @@ export default function WhatsAppAgent() {
           >
             <MessageCircle size={12} className="inline mr-1 text-green-400" />
             Chat with Isaac&apos;s AI assistant
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Chat window ── */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            ref={chatRef}
+            key="chat-window"
+            initial={{ opacity: 0, scale: 0.92, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 20 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            style={{
+              ...posStyle,
+              width: `min(${CHAT_W}px, calc(100vw - 16px))`,
+              maxHeight: minimized ? "auto" : `min(${CHAT_H}px, calc(100vh - 32px))`,
+            }}
+            className="fixed z-50 flex flex-col rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10"
+            aria-label="AI Assistant chat window"
+            role="dialog"
+            aria-modal="false"
+          >
+            {/* ── Header (drag handle) ── */}
+            <div
+              className="bg-gradient-to-r from-green-600 to-green-500 px-4 py-3 flex items-center justify-between flex-shrink-0 select-none"
+              style={{ cursor: didDrag.current ? "grabbing" : "grab" }}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+              aria-label="Drag to move chat window"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/30 flex-shrink-0">
+                  <Image
+                    src="/images/profile/isaac-profile.jpg"
+                    alt="Isaac"
+                    width={36} height={36}
+                    className="object-cover object-top w-full h-full"
+                  />
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-sm">{BOT_NAME}</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 bg-green-200 rounded-full animate-pulse" />
+                    <span className="text-green-100 text-xs">Online · Replies instantly</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Header controls */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={minimize}
+                  className="text-white/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+                  aria-label="Minimize chat"
+                >
+                  <Minus size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* ── Body (hidden when minimized) ── */}
+            {!minimized && (
+              <>
+                {/* Name capture */}
+                {!userName ? (
+                  <div className="flex-1 bg-[#0a0f1e] flex flex-col items-center justify-center p-8 gap-6 overflow-y-auto">
+                    <div className="text-center">
+                      <div className="w-16 h-16 rounded-full bg-[#0B1F3A] border-2 border-blue-500/40 flex items-center justify-center mx-auto mb-4">
+                        <AIAvatar size={44} />
+                      </div>
+                      <p className="text-white font-semibold text-base">Welcome! 👋</p>
+                      <p className="text-slate-400 text-sm mt-1">What&apos;s your name so I can greet you properly?</p>
+                    </div>
+                    <form onSubmit={startChat} className="w-full flex flex-col gap-3">
+                      <input
+                        autoFocus
+                        type="text"
+                        value={nameInput}
+                        onChange={(e) => setNameInput(e.target.value)}
+                        placeholder="Enter your name..."
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-green-500/60 transition-colors"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!nameInput.trim()}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
+                      >
+                        Start Chatting <ArrowRight size={15} />
+                      </button>
+                    </form>
+                    <div className="w-full">
+                      <p className="text-slate-500 text-xs text-center mb-2">You can ask things like:</p>
+                      <div className="flex flex-col gap-1.5">
+                        {SUGGESTED_QUESTIONS.slice(0, 3).map((q) => (
+                          <div key={q} className="px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/50 text-slate-400 text-xs">
+                            &ldquo;{q}&rdquo;
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Messages */}
+                    <div className="flex-1 overflow-y-auto bg-[#0a0f1e] p-4 space-y-3 min-h-0 max-h-72">
+                      {messages.map((msg) => (
+                        <div key={msg.id} className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                          {msg.role === "bot" ? (
+                            <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+                              <Image src={IMAGES.profile} alt="Isaac" width={28} height={28} className="object-cover object-top w-full h-full" />
+                            </div>
+                          ) : (
+                            <UserAvatar name={userName} size={28} />
+                          )}
+                          <div className={`max-w-[78%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+                            msg.role === "bot"
+                              ? "bg-slate-800 text-slate-200 rounded-bl-sm"
+                              : "bg-blue-600 text-white rounded-br-sm"
+                          }`}>
+                            {msg.text}
+                          </div>
+                        </div>
+                      ))}
+
+                      {typing && (
+                        <div className="flex items-end gap-2">
+                          <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+                            <Image src={IMAGES.profile} alt="Isaac" width={28} height={28} className="object-cover object-top w-full h-full" />
+                          </div>
+                          <div className="bg-slate-800 px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1">
+                            {[0, 1, 2].map((i) => (
+                              <motion.span key={i} className="w-1.5 h-1.5 bg-slate-400 rounded-full"
+                                animate={{ y: [0, -4, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div ref={bottomRef} />
+                    </div>
+
+                    {/* Suggested questions */}
+                    <div className="bg-slate-900 px-3 py-2 flex-shrink-0 border-t border-white/5">
+                      <p className="text-slate-500 text-[10px] uppercase tracking-widest mb-2 px-1">Suggested questions</p>
+                      <div className="flex flex-col gap-1">
+                        {SUGGESTED_QUESTIONS.map((q) => (
+                          <button key={q} onClick={() => sendMessage(q)}
+                            className="text-left px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors">
+                            {q}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* WhatsApp buttons */}
+                    {lastWhatsappMsg && (
+                      <div className="bg-slate-900 px-3 pb-2 flex gap-2 flex-shrink-0">
+                        <button onClick={() => openWhatsApp(WA_PRIMARY, lastWhatsappMsg)}
+                          className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-xs font-medium transition-colors">
+                          <FaWhatsapp size={14} /> WhatsApp (Liberia)
+                        </button>
+                        <button onClick={() => openWhatsApp(WA_SECONDARY, lastWhatsappMsg)}
+                          className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-700 hover:bg-green-600 text-white text-xs font-medium transition-colors">
+                          <FaWhatsapp size={14} /> WhatsApp (TR)
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Input */}
+                    <form
+                      onSubmit={(e) => { e.preventDefault(); sendMessage(input); }}
+                      className="bg-slate-900 border-t border-white/5 px-3 py-3 flex gap-2 flex-shrink-0"
+                    >
+                      <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder={`Ask me anything, ${userName}...`}
+                        className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-green-500/50 transition-colors"
+                      />
+                      <button type="submit" disabled={!input.trim()}
+                        className="w-9 h-9 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors flex-shrink-0">
+                        <Send size={15} className="text-white" />
+                      </button>
+                    </form>
+                  </>
+                )}
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
