@@ -18,9 +18,10 @@ const EMAIL        = "quelemineisaacl@gmail.com";
 const BOT_NAME     = "Isaac's Assistant";
 
 // Chat width / height constants used for viewport clamping
-const CHAT_W = 384; // ~w-96
-const CHAT_H = 600;
-const HANDLE_H = 10; // bottom drag handle height in px
+const CHAT_W  = 384; // ~w-96 on desktop
+const CHAT_H  = 600;
+const HANDLE_H = 10;
+const MOBILE_BP = 640; // px — below this, render as bottom sheet (no drag)
 
 function getBotReply(input: string, name: string): { text: string; whatsappMsg?: string } {
   const q = input.toLowerCase().trim();
@@ -128,6 +129,11 @@ const SUGGESTED_QUESTIONS = [
   "How can I contact Isaac?",
 ];
 
+/** Returns true when the viewport is narrower than the mobile breakpoint */
+function isMobileViewport() {
+  return typeof window !== "undefined" && window.innerWidth < MOBILE_BP;
+}
+
 /** Clamp chatbox position so it stays fully inside the viewport */
 function clampPos(x: number, y: number): { x: number; y: number } {
   const vw = window.innerWidth;
@@ -143,6 +149,7 @@ function clampPos(x: number, y: number): { x: number; y: number } {
 export default function WhatsAppAgent() {
   const [open,       setOpen]       = useState(false);
   const [minimized,  setMinimized]  = useState(false);
+  const [mobile,     setMobile]     = useState(false); // true when viewport < MOBILE_BP
   const [userName,   setUserName]   = useState("");
   const [nameInput,  setNameInput]  = useState("");
   const [messages,   setMessages]   = useState<Message[]>([]);
@@ -161,6 +168,14 @@ export default function WhatsAppAgent() {
   const didDrag    = useRef(false);
 
   const { pendingMessage, clearPending } = useChatContext();
+
+  /* ── Detect mobile viewport ── */
+  useEffect(() => {
+    const check = () => setMobile(isMobileViewport());
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   /* ── Pending message from project cards ── */
   useEffect(() => {
@@ -190,8 +205,9 @@ export default function WhatsAppAgent() {
     return () => window.removeEventListener("resize", onResize);
   }, [pos]);
 
-  /* ── Shared drag start (used by header AND bottom handle) ── */
+  /* ── Shared drag start — disabled on mobile ── */
   const startDrag = useCallback((e: React.PointerEvent<HTMLElement>) => {
+    if (mobile) return;
     if ((e.target as HTMLElement).closest("button")) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     didDrag.current = false;
@@ -205,7 +221,7 @@ export default function WhatsAppAgent() {
   }, []);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLElement>) => {
-    if (!dragOrigin.current) return;
+    if (mobile || !dragOrigin.current) return;
     const dx = e.clientX - dragOrigin.current.mx;
     const dy = e.clientY - dragOrigin.current.my;
     if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
@@ -270,10 +286,15 @@ export default function WhatsAppAgent() {
     setInput("");
   };
 
-  /* ── Position style: use drag pos or default bottom-right anchor ── */
-  const posStyle: React.CSSProperties = pos
-    ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto" }
-    : { right: 24, bottom: 96 };
+  /* ── Position style ──
+     Mobile  : full-width bottom sheet, ignore drag pos
+     Desktop : use drag pos or default bottom-right anchor
+  */
+  const posStyle: React.CSSProperties = mobile
+    ? { left: 0, right: 0, bottom: 0, top: "auto", width: "100%", borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
+    : pos
+      ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto" }
+      : { right: 24, bottom: 96 };
 
   return (
     <>
@@ -314,29 +335,29 @@ export default function WhatsAppAgent() {
           <motion.div
             ref={chatRef}
             key="chat-window"
-            initial={{ opacity: 0, scale: 0.92, y: 20 }}
+            initial={{ opacity: 0, scale: mobile ? 1 : 0.92, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 20 }}
+            exit={{ opacity: 0, scale: mobile ? 1 : 0.92, y: 20 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
             style={{
               ...posStyle,
-              width: `min(${CHAT_W}px, calc(100vw - 16px))`,
-              maxHeight: minimized ? "auto" : `min(${CHAT_H}px, calc(100vh - 32px))`,
+              ...(mobile ? {} : { width: `min(${CHAT_W}px, calc(100vw - 16px))` }),
+              maxHeight: minimized ? "auto" : mobile ? "92dvh" : `min(${CHAT_H}px, calc(100vh - 32px))`,
             }}
             className="fixed z-50 flex flex-col rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10"
             aria-label="AI Assistant chat window"
             role="dialog"
             aria-modal="false"
           >
-            {/* ── Header (drag handle) ── */}
+            {/* ── Header (drag handle on desktop, static on mobile) ── */}
             <div
               className="bg-gradient-to-r from-green-600 to-green-500 px-4 py-3 flex items-center justify-between flex-shrink-0 select-none"
-              style={{ cursor: dragging ? "grabbing" : "grab" }}
+              style={{ cursor: mobile ? "default" : dragging ? "grabbing" : "grab" }}
               onPointerDown={startDrag}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
               onPointerCancel={onPointerUp}
-              aria-label="Drag to move chat window"
+              aria-label={mobile ? "Chat header" : "Drag to move chat window"}
             >
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/30 flex-shrink-0">
@@ -412,7 +433,10 @@ export default function WhatsAppAgent() {
                 ) : (
                   <>
                     {/* Messages */}
-                    <div className="flex-1 overflow-y-auto bg-[#0a0f1e] p-4 space-y-3 min-h-0" style={{ maxHeight: "calc(100vh - 320px)", minHeight: 180 }}>
+                    <div
+                      className="flex-1 overflow-y-auto bg-[#0a0f1e] p-4 space-y-3 min-h-0"
+                      style={{ maxHeight: mobile ? "calc(92dvh - 280px)" : "calc(100vh - 320px)", minHeight: 160 }}
+                    >
                       {messages.map((msg) => (
                         <div key={msg.id} className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
                           {msg.role === "bot" ? (
@@ -448,13 +472,18 @@ export default function WhatsAppAgent() {
                       <div ref={bottomRef} />
                     </div>
 
-                    {/* Suggested questions */}
+                    {/* Suggested questions — scrollable row on mobile, column on desktop */}
                     <div className="bg-slate-900 px-3 py-2 flex-shrink-0 border-t border-white/5">
-                      <p className="text-slate-500 text-[10px] uppercase tracking-widest mb-2 px-1">Suggested questions</p>
-                      <div className="flex flex-col gap-1">
+                      <p className="text-slate-500 text-[10px] uppercase tracking-widest mb-2 px-1">Suggested</p>
+                      <div className={mobile ? "flex gap-2 overflow-x-auto pb-1 scrollbar-none" : "flex flex-col gap-1"}>
                         {SUGGESTED_QUESTIONS.map((q) => (
-                          <button key={q} onClick={() => sendMessage(q)}
-                            className="text-left px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors">
+                          <button
+                            key={q}
+                            onClick={() => sendMessage(q)}
+                            className={`text-left px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors ${
+                              mobile ? "whitespace-nowrap flex-shrink-0" : ""
+                            }`}
+                          >
                             {q}
                           </button>
                         ))}
@@ -497,18 +526,20 @@ export default function WhatsAppAgent() {
               </>
             )}
 
-            {/* ── Bottom drag handle ── */}
-            <div
-              className="flex-shrink-0 flex items-center justify-center bg-slate-900 border-t border-white/5 select-none"
-              style={{ height: HANDLE_H, cursor: dragging ? "grabbing" : "grab" }}
-              onPointerDown={startDrag}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerUp}
-              aria-label="Drag to move chat window"
-            >
-              <div className="w-8 h-1 rounded-full bg-slate-600" />
-            </div>
+            {/* ── Bottom drag handle — desktop only ── */}
+            {!mobile && (
+              <div
+                className="flex-shrink-0 flex items-center justify-center bg-slate-900 border-t border-white/5 select-none"
+                style={{ height: HANDLE_H, cursor: dragging ? "grabbing" : "grab" }}
+                onPointerDown={startDrag}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerUp}
+                aria-label="Drag to move chat window"
+              >
+                <div className="w-8 h-1 rounded-full bg-slate-600" />
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

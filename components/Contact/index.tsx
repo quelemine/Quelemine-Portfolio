@@ -60,8 +60,8 @@ export default function Contact() {
                 Whether you have a job offer, a project idea, or just want to say hello — my inbox is always open.
               </p>
 
-              {/* Two contact cards — 3 items each */}
-              <div className="grid grid-cols-2 gap-4 mb-5">
+              {/* Two contact cards — stacked on mobile, side-by-side on sm+ */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
                 {/* Card 1 */}
                 <div className="rounded-xl border border-slate-100 bg-white p-4 space-y-4 shadow-sm">
                   {[

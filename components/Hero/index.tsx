@@ -17,8 +17,8 @@ export default function Hero() {
         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-blue-800/6 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 lg:px-8 py-24">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
           {/* ── Left: Text content ── */}
           <div className="text-center lg:text-left order-2 lg:order-1">
