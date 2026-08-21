@@ -77,7 +77,7 @@ function ContributionGraph() {
           ))}
 
           {/* Day labels */}
-          {DAY_LABELS.map((d, i) => {
+          {DAY_LABELS.map((d) => {
             const row = d === "Mon" ? 0 : d === "Wed" ? 2 : 4;
             return (
               <text
@@ -113,8 +113,8 @@ function ContributionGraph() {
       {/* Legend */}
       <div className="flex items-center justify-end gap-1.5 mt-3">
         <span className="text-slate-400 text-[10px] mr-1">Less</span>
-        {CELL_COLORS.map((c, i) => (
-          <span key={i} style={{ background: c }} className="w-3 h-3 rounded-sm inline-block" />
+        {CELL_COLORS.map((c) => (
+          <span key={c} style={{ background: c }} className="w-3 h-3 rounded-sm inline-block" />
         ))}
         <span className="text-slate-400 text-[10px] ml-1">More</span>
       </div>

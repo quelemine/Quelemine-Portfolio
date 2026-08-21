@@ -33,11 +33,19 @@ const LanguageContext = createContext<LanguageContextValue>({
 });
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<LocaleCode>("en");
+  const [locale, setLocaleState] = useState<LocaleCode>(() => {
+    if (typeof window === "undefined") return "en";
+    const saved = localStorage.getItem("locale") as LocaleCode | null;
+    return saved && localeMap[saved] ? saved : "en";
+  });
 
   useEffect(() => {
     const saved = localStorage.getItem("locale") as LocaleCode | null;
-    if (saved && localeMap[saved]) setLocaleState(saved);
+    if (saved && localeMap[saved]) {
+      const dir = LANGUAGES.find((l) => l.code === saved)?.dir ?? "ltr";
+      document.documentElement.setAttribute("dir", dir);
+      document.documentElement.setAttribute("lang", saved);
+    }
   }, []);
 
   const setLocale = (code: LocaleCode) => {

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ExternalLink, Maximize2 } from "lucide-react";
+import { X, Maximize2 } from "lucide-react";
 
 interface Props {
   open: boolean;

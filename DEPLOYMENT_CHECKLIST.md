@@ -95,6 +95,7 @@ All assets are in `public/`:
 
 ## Final Test Results (pre-push)
 - TypeScript: ✅ 0 errors
+- ESLint: ✅ 0 errors, 0 warnings
 - Production build: ✅ Passed
 - npm audit: ✅ 0 vulnerabilities
 - Security headers: ✅ Applied
@@ -103,6 +104,7 @@ All assets are in `public/`:
 - Broken images: ✅ Fixed (github-readme-stats 503 replaced with real API)
 - Dead code: ✅ None found
 - Console logs: ✅ None found
+- setState-in-effect: ✅ Fixed (WhatsAppAgent + Admin dashboard)
 
 ---
 

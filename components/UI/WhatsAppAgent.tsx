@@ -177,19 +177,44 @@ export default function WhatsAppAgent() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  /* ── Chat logic ── */
+  const sendMessageWithSession = useCallback((text: string, sid: string, name: string) => {
+    setMessages((prev) => [...prev, { id: performance.now(), role: "user", text }]);
+    logMessage(sid, "user", text);
+    setTyping(true);
+    setTimeout(() => {
+      try {
+        const reply = getBotReply(text, name);
+        setMessages((prev) => [...prev, { id: performance.now() + 1, role: "bot", text: reply.text }]);
+        logMessage(sid, "bot", reply.text, "success");
+        if (reply.whatsappMsg) setLastWhatsappMsg(reply.whatsappMsg);
+      } catch {
+        const errText = "Sorry, something went wrong. Please try again.";
+        setMessages((prev) => [...prev, { id: performance.now() + 1, role: "bot", text: errText }]);
+        logMessage(sid, "bot", errText, "error");
+      }
+      setTyping(false);
+    }, 900);
+  }, []);
+
+  const sendMessage = useCallback((text: string) => {
+    if (!text.trim() || !sessionId) return;
+    sendMessageWithSession(text, sessionId, userName);
+    setInput("");
+  }, [sessionId, userName, sendMessageWithSession]);
+
   /* ── Pending message from project cards ── */
   useEffect(() => {
-    if (pendingMessage && userName) {
+    if (!pendingMessage) return;
+    setTimeout(() => {
       setOpen(true);
       setMinimized(false);
-      sendMessage(pendingMessage);
-      clearPending();
-    } else if (pendingMessage) {
-      setOpen(true);
-      setMinimized(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingMessage]);
+      if (userName) {
+        sendMessage(pendingMessage);
+        clearPending();
+      }
+    }, 0);
+  }, [pendingMessage, userName, sendMessage, clearPending]);
 
   /* ── Auto-scroll to latest message ── */
   useEffect(() => {
@@ -218,7 +243,7 @@ export default function WhatsAppAgent() {
       bx: rect?.left ?? (window.innerWidth  - Math.min(CHAT_W, window.innerWidth  - 16) - 24),
       by: rect?.top  ?? (window.innerHeight - Math.min(CHAT_H, window.innerHeight - 16) - 96),
     };
-  }, []);
+  }, [mobile]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLElement>) => {
     if (mobile || !dragOrigin.current) return;
@@ -230,7 +255,7 @@ export default function WhatsAppAgent() {
     }
     if (!didDrag.current) return;
     setPos(clampPos(dragOrigin.current.bx + dx, dragOrigin.current.by + dy));
-  }, []);
+  }, [mobile]);
 
   const onPointerUp = useCallback(() => {
     dragOrigin.current = null;
@@ -238,14 +263,10 @@ export default function WhatsAppAgent() {
   }, []);
 
   /* ── Open / minimize helpers ── */
-  const openChat = () => {
-    setOpen(true);
-    setMinimized(false);
-  };
-
+  const openChat = () => { setOpen(true); setMinimized(false); };
   const minimize = () => setMinimized(true);
 
-  /* ── Chat logic (unchanged) ── */
+  /* ── Start chat ── */
   const startChat = (e: React.FormEvent) => {
     e.preventDefault();
     const name = nameInput.trim();
@@ -254,36 +275,11 @@ export default function WhatsAppAgent() {
     setSessionId(sid);
     setUserName(name);
     const greeting = `Hi ${name}! 👋 I'm Isaac's AI assistant. I can answer questions about his skills, experience, and projects — or connect you with him directly on WhatsApp. How can I help you today?`;
-    setMessages([{ id: Date.now(), role: "bot", text: greeting }]);
+    setMessages([{ id: performance.now(), role: "bot", text: greeting }]);
     logMessage(sid, "bot", greeting);
     if (pendingMessage) {
       setTimeout(() => { sendMessageWithSession(pendingMessage, sid, name); clearPending(); }, 1000);
     }
-  };
-
-  const sendMessageWithSession = (text: string, sid: string, name: string) => {
-    setMessages((prev) => [...prev, { id: Date.now(), role: "user", text }]);
-    logMessage(sid, "user", text);
-    setTyping(true);
-    setTimeout(() => {
-      try {
-        const reply = getBotReply(text, name);
-        setMessages((prev) => [...prev, { id: Date.now() + 1, role: "bot", text: reply.text }]);
-        logMessage(sid, "bot", reply.text, "success");
-        if (reply.whatsappMsg) setLastWhatsappMsg(reply.whatsappMsg);
-      } catch {
-        const errText = "Sorry, something went wrong. Please try again.";
-        setMessages((prev) => [...prev, { id: Date.now() + 1, role: "bot", text: errText }]);
-        logMessage(sid, "bot", errText, "error");
-      }
-      setTyping(false);
-    }, 900);
-  };
-
-  const sendMessage = (text: string) => {
-    if (!text.trim() || !sessionId) return;
-    sendMessageWithSession(text, sessionId, userName);
-    setInput("");
   };
 
   /* ── Position style ──

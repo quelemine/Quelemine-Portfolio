@@ -32,9 +32,13 @@ export default function AdminDashboard() {
   const [sortAsc, setSortAsc]       = useState(false);
   const [expanded, setExpanded]     = useState<string | null>(null);
   const [filter, setFilter]         = useState<"all" | "recent">("all");
+  const [now, setNow]               = useState(() => Date.now());
 
   useEffect(() => {
-    if (authed) setSessions(getAllSessions());
+    if (!authed) return;
+    setTimeout(() => setSessions(getAllSessions()), 0);
+    const interval = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(interval);
   }, [authed]);
 
   const login = (e: React.FormEvent) => {
@@ -54,7 +58,7 @@ export default function AdminDashboard() {
       );
     }
     if (filter === "recent") {
-      const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+      const cutoff = now - 24 * 60 * 60 * 1000;
       list = list.filter((s) => new Date(s.lastActiveAt).getTime() > cutoff);
     }
     list.sort((a, b) => {
@@ -62,10 +66,10 @@ export default function AdminDashboard() {
       return sortAsc ? diff : -diff;
     });
     return list;
-  }, [sessions, search, sortAsc, filter]);
+  }, [sessions, search, sortAsc, filter, now]);
 
   const totalMessages = sessions.reduce((acc, s) => acc + s.messages.length, 0);
-  const recentCount   = sessions.filter((s) => Date.now() - new Date(s.lastActiveAt).getTime() < 86400000).length;
+  const recentCount   = sessions.filter((s) => now - new Date(s.lastActiveAt).getTime() < 86400000).length;
   const errorCount    = sessions.reduce((acc, s) => acc + s.messages.filter((m) => m.status === "error").length, 0);
 
   // Top questions — user messages sorted by frequency
@@ -232,7 +236,7 @@ export default function AdminDashboard() {
             {filtered.map((session) => {
               const isOpen = expanded === session.sessionId;
               const hasError = session.messages.some((m) => m.status === "error");
-              const isRecent = Date.now() - new Date(session.lastActiveAt).getTime() < 3600000;
+              const isRecent = now - new Date(session.lastActiveAt).getTime() < 3600000;
               return (
                 <div key={session.sessionId} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                   {/* Session header */}
