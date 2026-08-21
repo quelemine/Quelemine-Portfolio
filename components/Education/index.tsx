@@ -39,8 +39,8 @@ export default function Education() {
               return (
                 <motion.div
                   key={edu.id}
-                  initial={{ opacity: 0, x: -40 }}
-                  animate={inView ? { opacity: 1, x: 0 } : {}}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={inView ? { opacity: 1, y: 0 } : {}}
                   transition={{ duration: 0.6, delay: i * 0.15 }}
                   className="relative md:pl-20"
                 >

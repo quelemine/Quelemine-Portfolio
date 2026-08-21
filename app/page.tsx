@@ -16,7 +16,7 @@ import ScrollToTop from "@/components/UI/ScrollToTop";
 
 export default function Home() {
   return (
-    <main className="min-h-screen animated-bg">
+    <main className="min-h-screen">
       <Navbar />
       <Hero />
       <About />

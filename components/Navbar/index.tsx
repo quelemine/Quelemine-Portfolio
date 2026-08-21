@@ -54,12 +54,12 @@ export default function Navbar() {
         scrolled
           ? "shadow-lg shadow-black/20 border-b border-white/8"
           : ""
-      } bg-[#0B1F3A]`}
+      } bg-[#0B1F3A] w-full`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <a href="#home" className="flex items-center gap-2 group">
+          <a href="#home" className="flex items-center gap-2 group flex-shrink-0">
             <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-blue-500/50 group-hover:ring-blue-400 transition-all duration-300">
               <Image src="/images/profile/isaac-profile-four.jpeg" alt="Isaac" width={32} height={32} className="object-cover object-top w-full h-full" />
             </div>
@@ -69,7 +69,7 @@ export default function Navbar() {
           </a>
 
           {/* Desktop Links */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => (
               <a
                 key={link.href}
@@ -86,9 +86,8 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* CTA + Language switcher */}
-          <div className="hidden md:flex items-center gap-3">
-            {/* Language switcher */}
+          {/* CTA + Language switcher — desktop */}
+          <div className="hidden lg:flex items-center gap-3">
             <div className="relative" ref={langRef}>
               <button
                 onClick={() => setLangOpen(!langOpen)}
@@ -126,7 +125,6 @@ export default function Navbar() {
                 )}
               </AnimatePresence>
             </div>
-
             <a
               href="#contact"
               className="btn-primary px-4 py-2 rounded-lg text-sm font-medium text-white"
@@ -135,17 +133,27 @@ export default function Navbar() {
             </a>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/8 transition-all"
-          >
-            {menuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          {/* Right side — mobile/tablet */}
+          <div className="flex lg:hidden items-center gap-2">
+            <a
+              href="#contact"
+              onClick={(e) => handleNav(e, "#contact")}
+              className="hidden sm:inline-flex btn-primary px-4 py-2 rounded-lg text-sm font-medium text-white"
+            >
+              {t.nav.hireMe}
+            </a>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle menu"
+              className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/8 transition-all"
+            >
+              {menuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile / Tablet Menu */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -153,41 +161,50 @@ export default function Navbar() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden bg-[#0B1F3A] border-t border-white/8"
+            className="lg:hidden bg-[#0B1F3A] border-t border-white/8 overflow-hidden w-full"
           >
-            <div className="px-4 py-3 space-y-1">
-              {navLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={(e) => handleNav(e, link.href)}
-                  className="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/8 transition-all"
-                >
-                  {link.label}
-                </a>
-              ))}
+            <div className="px-4 py-4 max-w-7xl mx-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mb-3">
+                {navLinks.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    onClick={(e) => handleNav(e, link.href)}
+                    className={`flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                      active === link.href
+                        ? "text-blue-400 bg-blue-500/15"
+                        : "text-slate-300 hover:text-white hover:bg-white/8"
+                    }`}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+
+              {/* Hire Me — only on mobile (tablet already has it in navbar) */}
               <a
                 href="#contact"
                 onClick={(e) => handleNav(e, "#contact")}
-                className="block mt-2 btn-primary px-3 py-2 rounded-lg text-sm font-medium text-white text-center"
+                className="sm:hidden block mb-3 btn-primary px-4 py-3 rounded-xl text-sm font-medium text-white text-center"
               >
                 {t.nav.hireMe}
               </a>
-              {/* Mobile language picker */}
-              <div className="pt-2 border-t border-white/8 mt-2">
-                <p className="text-xs text-slate-500 px-3 mb-2">{t.language.label}</p>
-                <div className="grid grid-cols-3 gap-1">
+
+              {/* Language picker */}
+              <div className="pt-3 border-t border-white/8">
+                <p className="text-xs text-slate-500 px-1 mb-2">{t.language.label}</p>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                   {LANGUAGES.map((lang) => (
                     <button
                       key={lang.code}
                       onClick={() => { setLocale(lang.code as LocaleCode); setMenuOpen(false); }}
-                      className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                      className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                         locale === lang.code
-                          ? "bg-blue-500/20 text-blue-400"
+                          ? "bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/30"
                           : "text-slate-400 hover:bg-white/8 hover:text-white"
                       }`}
                     >
-                      <span>{lang.flag}</span>
+                      <span className="text-base leading-none">{lang.flag}</span>
                       <span>{lang.code.toUpperCase()}</span>
                     </button>
                   ))}

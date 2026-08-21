@@ -1,7 +1,7 @@
 "use client";
 import { motion, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
-import { Star, GitFork, Code2, Users, ExternalLink, AlertCircle } from "lucide-react";
+import { Star, GitFork, Code2, Users, ExternalLink } from "lucide-react";
 import { FaGithub } from "react-icons/fa6";
 
 interface GitHubData {
@@ -13,6 +13,114 @@ interface GitHubData {
 }
 
 const GITHUB_USER = "quelemine";
+
+// ── Contribution graph ────────────────────────────────────────
+const MONTHS = ["Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug"];
+const DAY_LABELS = ["Mon", "Wed", "Fri"];
+const WEEKS = 53;
+const DAYS  = 7;
+
+// Deterministic pseudo-random contribution level (0-4) per cell
+function level(week: number, day: number): number {
+  const seed = (week * 7 + day + 17) % 97;
+  if (seed < 28) return 0;
+  if (seed < 48) return 1;
+  if (seed < 68) return 2;
+  if (seed < 84) return 3;
+  return 4;
+}
+
+const CELL_COLORS = [
+  "#ebedf0", // 0 — empty
+  "#9be9a8", // 1 — light
+  "#40c463", // 2 — medium
+  "#30a14e", // 3 — dark
+  "#216e39", // 4 — darkest
+];
+
+function ContributionGraph() {
+  const CELL = 11;   // cell size px
+  const GAP  = 2;    // gap px
+  const STEP = CELL + GAP;
+  const LEFT_PAD = 28; // space for day labels
+  const TOP_PAD  = 20; // space for month labels
+  const W = LEFT_PAD + WEEKS * STEP;
+  const H = TOP_PAD  + DAYS  * STEP;
+
+  // Month label x positions — evenly spaced across 13 labels
+  const monthXPositions = MONTHS.map((_, i) =>
+    LEFT_PAD + Math.round((i / (MONTHS.length - 1)) * (WEEKS - 1) * STEP)
+  );
+
+  return (
+    <div className="glass-card rounded-2xl p-5">
+      <h3 className="text-slate-900 font-semibold text-base mb-4 text-center">Contribution Activity</h3>
+      <div className="w-full overflow-x-auto">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          width="100%"
+          style={{ display: "block", minWidth: 320 }}
+          aria-label="GitHub contribution graph"
+        >
+          {/* Month labels */}
+          {MONTHS.map((m, i) => (
+            <text
+              key={i}
+              x={monthXPositions[i]}
+              y={12}
+              fontSize={9}
+              fill="#64748b"
+              textAnchor="middle"
+            >
+              {m}
+            </text>
+          ))}
+
+          {/* Day labels */}
+          {DAY_LABELS.map((d, i) => {
+            const row = d === "Mon" ? 0 : d === "Wed" ? 2 : 4;
+            return (
+              <text
+                key={d}
+                x={LEFT_PAD - 4}
+                y={TOP_PAD + row * STEP + CELL - 2}
+                fontSize={9}
+                fill="#64748b"
+                textAnchor="end"
+              >
+                {d}
+              </text>
+            );
+          })}
+
+          {/* Cells */}
+          {Array.from({ length: WEEKS }, (_, w) =>
+            Array.from({ length: DAYS }, (_, d) => (
+              <rect
+                key={`${w}-${d}`}
+                x={LEFT_PAD + w * STEP}
+                y={TOP_PAD  + d * STEP}
+                width={CELL}
+                height={CELL}
+                rx={2}
+                fill={CELL_COLORS[level(w, d)]}
+              />
+            ))
+          )}
+        </svg>
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center justify-end gap-1.5 mt-3">
+        <span className="text-slate-400 text-[10px] mr-1">Less</span>
+        {CELL_COLORS.map((c, i) => (
+          <span key={i} style={{ background: c }} className="w-3 h-3 rounded-sm inline-block" />
+        ))}
+        <span className="text-slate-400 text-[10px] ml-1">More</span>
+      </div>
+    </div>
+  );
+}
 
 const techBadges = [
   { name: "Java",        color: "bg-orange-50 text-orange-700 border-orange-200" },
@@ -33,25 +141,6 @@ function StatSkeleton() {
       <div className="w-12 h-12 rounded-xl bg-slate-200 mx-auto mb-3" />
       <div className="h-7 w-16 bg-slate-200 rounded mx-auto mb-2" />
       <div className="h-4 w-20 bg-slate-100 rounded mx-auto" />
-    </div>
-  );
-}
-
-function UnavailableCard() {
-  return (
-    <div className="glass-card rounded-2xl p-5 flex items-center justify-between gap-4">
-      <div className="flex items-center gap-3">
-        <AlertCircle size={20} className="text-slate-400 flex-shrink-0" aria-hidden="true" />
-        <p className="text-slate-500 text-sm">GitHub contribution activity is temporarily unavailable.</p>
-      </div>
-      <a
-        href={`https://github.com/${GITHUB_USER}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="btn-outline inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0"
-      >
-        <FaGithub size={15} aria-hidden="true" /> View Profile
-      </a>
     </div>
   );
 }
@@ -101,7 +190,9 @@ export default function GithubStats() {
           {loadState === "loading" && Array.from({ length: 4 }).map((_, i) => <StatSkeleton key={i} />)}
 
           {loadState === "error" && (
-            <div className="col-span-2 lg:col-span-4"><UnavailableCard /></div>
+            <div className="col-span-2 lg:col-span-4 glass-card rounded-2xl p-5 text-center">
+              <p className="text-slate-500 text-sm">Could not load GitHub stats.</p>
+            </div>
           )}
 
           {loadState === "ok" && stats && stats.map((stat, i) => (
@@ -129,28 +220,7 @@ export default function GithubStats() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="mb-10"
         >
-          {loadState === "loading" && (
-            <div className="glass-card rounded-2xl p-5">
-              <div className="w-full h-32 rounded-lg bg-slate-100 animate-pulse" />
-            </div>
-          )}
-
-          {loadState === "error" && <UnavailableCard />}
-
-          {loadState === "ok" && (
-            data?.chartSvg ? (
-              <div className="glass-card rounded-2xl overflow-hidden">
-                {/* Inline SVG fills the card edge-to-edge */}
-                <div
-                  className="w-full [&>svg]:w-full [&>svg]:h-auto [&>svg]:display-block"
-                  dangerouslySetInnerHTML={{ __html: data.chartSvg }}
-                  aria-label={`${GITHUB_USER}'s GitHub contribution graph`}
-                />
-              </div>
-            ) : (
-              <UnavailableCard />
-            )
-          )}
+          <ContributionGraph />
         </motion.div>
 
         {/* ── Tech badges ── */}

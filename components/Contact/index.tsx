@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { Send, Mail, MapPin, CheckCircle, Loader2, Phone } from "lucide-react";
+import { Send, Mail, MapPin, CheckCircle, Loader2, Phone, X } from "lucide-react";
 import { FaLinkedin, FaGithub, FaWhatsapp } from "react-icons/fa6";
 
 export default function Contact() {
@@ -13,6 +13,13 @@ export default function Contact() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
+
+  const handleCancel = () => {
+    setForm({ name: "", email: "", subject: "", message: "" });
+    setStatus("idle");
+  };
+
+  const isDirty = Object.values(form).some((v) => v !== "");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,8 +55,8 @@ export default function Contact() {
         <div className="grid lg:grid-cols-2 gap-10 max-w-5xl mx-auto">
           {/* Info */}
           <motion.div
-            initial={{ opacity: 0, x: -40 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
+            initial={{ opacity: 0, y: 20 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.7, delay: 0.1 }}
             className="space-y-6"
           >
@@ -137,8 +144,8 @@ export default function Contact() {
 
           {/* Form */}
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
+            initial={{ opacity: 0, y: 20 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.7, delay: 0.2 }}
           >
             <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-6 space-y-4">
@@ -195,20 +202,32 @@ export default function Contact() {
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={status === "sending" || status === "sent"}
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all duration-300 ${
-                  status === "sent"
-                    ? "bg-green-600 text-white"
-                    : "btn-primary text-white"
-                }`}
-              >
-                {status === "sending" && <Loader2 size={16} className="animate-spin" />}
-                {status === "sent" && <CheckCircle size={16} />}
-                {status === "idle" && <Send size={16} />}
-                {status === "idle" ? "Send Message" : status === "sending" ? "Sending..." : "Message Sent!"}
-              </button>
+              <div className="flex gap-3">
+                {isDirty && status === "idle" && (
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all duration-200"
+                  >
+                    <X size={16} />
+                    Cancel
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={status === "sending" || status === "sent"}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all duration-300 ${
+                    status === "sent"
+                      ? "bg-green-600 text-white"
+                      : "btn-primary text-white"
+                  }`}
+                >
+                  {status === "sending" && <Loader2 size={16} className="animate-spin" />}
+                  {status === "sent" && <CheckCircle size={16} />}
+                  {status === "idle" && <Send size={16} />}
+                  {status === "idle" ? "Send Message" : status === "sending" ? "Sending..." : "Message Sent!"}
+                </button>
+              </div>
             </form>
           </motion.div>
         </div>

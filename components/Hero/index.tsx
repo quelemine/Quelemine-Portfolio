@@ -9,15 +9,15 @@ export default function Hero() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden grid-pattern bg-[#0B1F3A]"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden grid-pattern bg-[#0B1F3A] w-full"
     >
       {/* Subtle background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-blue-600/8 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-blue-800/6 rounded-full blur-3xl" />
+        <div className="absolute top-1/3 left-1/4 w-[min(500px,80vw)] h-[min(500px,80vw)] bg-blue-600/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-[min(400px,70vw)] h-[min(400px,70vw)] bg-blue-800/6 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16 sm:pt-32 sm:pb-20 lg:pt-36 lg:pb-24">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
           {/* ── Left: Text content ── */}
@@ -110,7 +110,7 @@ export default function Hero() {
               <div className="absolute -inset-3 rounded-full bg-blue-500/8 blur-2xl" />
 
               {/* Profile circle */}
-              <div className="relative w-64 h-72 sm:w-72 sm:h-80 lg:w-80 lg:h-[22rem] rounded-[50%] profile-glow overflow-hidden ring-2 ring-blue-500/30 hover:ring-blue-400/50 transition-all duration-500">
+              <div className="relative w-56 h-64 sm:w-72 sm:h-80 lg:w-80 lg:h-[22rem] rounded-[50%] profile-glow overflow-hidden ring-2 ring-blue-500/30 hover:ring-blue-400/50 transition-all duration-500 max-w-full">
                 <Image src="/images/profile/isaac-profile.jpg" alt="Isaac L. Quelemine" fill className="object-cover object-top" priority />
               </div>
 

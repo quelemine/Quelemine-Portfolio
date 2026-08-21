@@ -108,8 +108,8 @@ export default function Skills() {
                     {cat.capabilities.map((cap, j) => (
                       <motion.li
                         key={cap}
-                        initial={{ opacity: 0, x: -6 }}
-                        animate={inView ? { opacity: 1, x: 0 } : {}}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={inView ? { opacity: 1, y: 0 } : {}}
                         transition={{ duration: 0.25, delay: i * 0.1 + (cat.tags.length + j) * 0.05 }}
                         className="flex items-center gap-2.5 text-sm text-slate-500"
                       >
@@ -202,8 +202,8 @@ export default function Skills() {
                     {group.techs.map((tech, ti) => (
                       <motion.span
                         key={tech}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={inView ? { opacity: 1, x: 0 } : {}}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={inView ? { opacity: 1, y: 0 } : {}}
                         transition={{ duration: 0.25, delay: 0.6 + gi * 0.08 + ti * 0.04 }}
                         className="text-sm font-medium text-slate-700"
                       >
