@@ -9,7 +9,7 @@ import AIAvatar from "@/components/UI/AIAvatar";
 import { createSession, logMessage } from "@/lib/chatLogger";
 import { useChatContext } from "@/context/ChatContext";
 
-interface Message { id: number; role: "bot" | "user"; text: string; }
+interface Message { id: number; role: "bot" | "user"; text: string; attachment?: { name: string; url: string; type: string }; }
 
 const WA_PRIMARY   = "+231880857969";
 const WA_SECONDARY = "+905338721736";
@@ -27,7 +27,7 @@ const MIN_H = 400;
 const MAX_W = 600;
 const MAX_H = 800;
 
-function getBotReply(input: string, name: string): { text: string; whatsappMsg?: string; showResumeButton?: boolean } {
+function getBotReply(input: string, name: string): { text: string; whatsappMsg?: string; attachment?: { name: string; url: string; type: string } } {
   const q = input.toLowerCase().trim();
 
   if (/who is isaac|tell me about isaac|about isaac|introduce|isaac quelemine|quelemine/.test(q))
@@ -95,10 +95,10 @@ function getBotReply(input: string, name: string): { text: string; whatsappMsg?:
       whatsappMsg: `Hi Isaac! I'm ${name}. I saw you're available for work and I'd like to discuss an opportunity.`,
     };
 
-  if (/resume|cv|download.*resume|see.*cv|send.*resume|get.*resume|want.*cv/.test(q))
+  if (/resume|cv|download.*resume|see.*cv|send.*resume|get.*resume|want.*cv|sent.*resume|his resume|your resume|the resume|a resume/.test(q))
     return {
-      text: `Of course, ${name}! You can download Isaac's resume directly using the button below. It contains his full work experience, skills, and education. 📄`,
-      showResumeButton: true,
+      text: `Of course, ${name}! Here is Isaac's resume. It contains his full work experience, skills, and education. 📄`,
+      attachment: { name: "Isaac_Quelemine_Resume.pdf", url: "/resume.pdf", type: "application/pdf" },
     };
 
   if (/no[!\s]*thanks|no[!\s]*thank you|nothing|no more|that'?s all|that is all|i'?m good|i am good|bye|goodbye|see you|take care|farewell/.test(q))
@@ -142,14 +142,14 @@ function isMobileViewport() {
 }
 
 /** Clamp chatbox position so it stays fully inside the viewport */
-function clampPos(x: number, y: number): { x: number; y: number } {
+function clampPos(x: number, y: number, width: number = CHAT_W, height: number = CHAT_H): { x: number; y: number } {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const w  = Math.min(CHAT_W, vw - 16);
-  const h  = Math.min(CHAT_H, vh - 16);
+  const w  = Math.min(width, vw - 16);
+  const h  = Math.min(height, vh - 40);
   return {
     x: Math.max(8, Math.min(x, vw - w - 8)),
-    y: Math.max(8, Math.min(y, vh - h - 8)),
+    y: Math.max(20, Math.min(y, vh - h - 20)),
   };
 }
 
@@ -164,7 +164,6 @@ export default function WhatsAppAgent() {
   const [typing,     setTyping]     = useState(false);
   const [typingStatus, setTypingStatus] = useState("AI Assistant is thinking...");
   const [lastWhatsappMsg, setLastWhatsappMsg] = useState("");
-  const [showResumeButton, setShowResumeButton] = useState(false);
   const [sessionId,  setSessionId]  = useState("");
 
   // Drag state — null means "use default bottom-right anchor via CSS"
@@ -210,10 +209,9 @@ export default function WhatsAppAgent() {
     setTimeout(() => {
       try {
         const reply = getBotReply(text, name);
-        setMessages((prev) => [...prev, { id: performance.now() + 1, role: "bot", text: reply.text }]);
+        setMessages((prev) => [...prev, { id: performance.now() + 1, role: "bot", text: reply.text, attachment: reply.attachment }]);
         logMessage(sid, "bot", reply.text, "success");
         if (reply.whatsappMsg) setLastWhatsappMsg(reply.whatsappMsg);
-        if (reply.showResumeButton) setShowResumeButton(true);
       } catch {
         const errText = "Sorry, something went wrong. Please try again.";
         setMessages((prev) => [...prev, { id: performance.now() + 1, role: "bot", text: errText }]);
@@ -266,10 +264,10 @@ export default function WhatsAppAgent() {
     dragOrigin.current = {
       mx: e.clientX,
       my: e.clientY,
-      bx: rect?.left ?? (window.innerWidth  - Math.min(CHAT_W, window.innerWidth  - 16) - 24),
-      by: rect?.top  ?? (window.innerHeight - Math.min(CHAT_H, window.innerHeight - 16) - 96),
+      bx: rect?.left ?? (window.innerWidth  - Math.min(chatWidth, window.innerWidth  - 16) - 24),
+      by: rect?.top  ?? (window.innerHeight - Math.min(chatHeight, window.innerHeight - 40) - 24),
     };
-  }, [mobile]);
+  }, [mobile, chatWidth, chatHeight]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLElement>) => {
     if (mobile || !dragOrigin.current) return;
@@ -280,8 +278,8 @@ export default function WhatsAppAgent() {
       setDragging(true);
     }
     if (!didDrag.current) return;
-    setPos(clampPos(dragOrigin.current.bx + dx, dragOrigin.current.by + dy));
-  }, [mobile]);
+    setPos(clampPos(dragOrigin.current.bx + dx, dragOrigin.current.by + dy, chatWidth, chatHeight));
+  }, [mobile, chatWidth, chatHeight]);
 
   const onPointerUp = useCallback(() => {
     dragOrigin.current = null;
@@ -346,7 +344,7 @@ export default function WhatsAppAgent() {
     ? { left: 0, right: 0, bottom: 0, top: "auto", width: "100%", borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
     : pos
       ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto", width: chatWidth }
-      : { right: 24, bottom: 96, width: chatWidth };
+      : { right: 24, bottom: 24, width: chatWidth };
 
   return (
     <>
@@ -394,7 +392,7 @@ export default function WhatsAppAgent() {
             style={{
               ...posStyle,
               ...(mobile ? {} : { width: `${chatWidth}px` }),
-              maxHeight: minimized ? "auto" : mobile ? "92dvh" : `${chatHeight}px`,
+              maxHeight: minimized ? "auto" : mobile ? "92dvh" : `${Math.min(chatHeight, window.innerHeight - 40)}px`,
             }}
             className="fixed z-50 flex flex-col rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10"
             aria-label="AI Assistant chat window"
@@ -517,6 +515,22 @@ export default function WhatsAppAgent() {
                               : "bg-blue-600 text-white rounded-br-sm"
                           }`}>
                             {msg.text}
+                            {msg.attachment && (
+                              <a
+                                href={msg.attachment.url}
+                                download={msg.attachment.name}
+                                className="mt-2 flex items-center gap-2 px-3 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors border border-slate-600/50"
+                              >
+                                <div className="w-8 h-8 rounded bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-red-400 text-xs font-bold">PDF</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium truncate">{msg.attachment.name}</p>
+                                  <p className="text-[10px] text-slate-400">Click to download</p>
+                                </div>
+                                <ArrowRight size={14} className="text-slate-400 flex-shrink-0" />
+                              </a>
+                            )}
                           </div>
                         </motion.div>
                       ))}
@@ -579,24 +593,6 @@ export default function WhatsAppAgent() {
                           className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-700 hover:bg-green-600 text-white text-xs font-medium transition-colors">
                           <FaWhatsapp size={14} /> WhatsApp (TR)
                         </button>
-                      </motion.div>
-                    )}
-
-                    {/* Resume download button */}
-                    {showResumeButton && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="bg-slate-900 px-3 pb-2 flex-shrink-0"
-                      >
-                        <a
-                          href="/resume.pdf"
-                          download="Isaac_Quelemine_Resume.pdf"
-                          className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors w-full"
-                        >
-                          <ArrowRight size={14} /> Download Resume
-                        </a>
                       </motion.div>
                     )}
 
