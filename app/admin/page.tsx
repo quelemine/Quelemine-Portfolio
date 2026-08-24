@@ -7,11 +7,11 @@ import {
   Edit2, Trash2, X, Check, ChevronDown, ChevronUp, Image as ImageIcon,
   Eye, EyeOff
 } from "lucide-react";
-import { getAllSessions, type ChatSession } from "@/lib/chatLogger";
+import { getAllSessions, clearAllSessions, deleteSession, type ChatSession } from "@/lib/chatLogger";
 import type { AdminSettings, Project, Education } from "@/types/admin";
 
 
-type TabType = 'dashboard' | 'profile' | 'cv' | 'password' | 'projects' | 'education' | 'colors' | 'content' | 'logo' | 'typography';
+type TabType = 'dashboard' | 'profile' | 'cv' | 'password' | 'projects' | 'education' | 'colors' | 'content' | 'logo' | 'typography' | 'chatlogs';
 
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState(false);
@@ -56,6 +56,13 @@ export default function AdminDashboard() {
     if (!authed) return;
     loadSettings();
   }, [authed]);
+
+  useEffect(() => {
+    if (!authed) return;
+    if (activeTab === 'chatlogs') {
+      setSessions(getAllSessions());
+    }
+  }, [authed, activeTab]);
 
   const loadSettings = async () => {
     try {
@@ -332,6 +339,22 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleClearAllLogs = () => {
+    if (confirm('Are you sure you want to clear all chat logs? This action cannot be undone.')) {
+      clearAllSessions();
+      setSessions([]);
+      showNotification('success', 'All chat logs cleared');
+    }
+  };
+
+  const handleDeleteSession = (sessionId: string) => {
+    if (confirm('Are you sure you want to delete this chat session?')) {
+      deleteSession(sessionId);
+      setSessions(getAllSessions());
+      showNotification('success', 'Chat session deleted');
+    }
+  };
+
   if (!authed) {
     return (
       <div className="min-h-screen bg-[#0B1F3A] flex items-center justify-center px-4">
@@ -502,6 +525,7 @@ export default function AdminDashboard() {
     { id: 'colors' as TabType, label: 'Colors', icon: Palette },
     { id: 'typography' as TabType, label: 'Typography', icon: Settings },
     { id: 'content' as TabType, label: 'Content', icon: Settings },
+    { id: 'chatlogs' as TabType, label: 'Chat Logs', icon: MessageSquare },
   ];
 
   return (
@@ -619,8 +643,15 @@ export default function AdminDashboard() {
                 key="content" 
                 settings={settings} 
                 onSave={handleSaveSettings}
-                onFileUpload={handleFileUpload}
                 loading={loading}
+              />
+            )}
+            {activeTab === 'chatlogs' && (
+              <ChatLogsTab 
+                key="chatlogs" 
+                sessions={sessions}
+                onClearAll={handleClearAllLogs}
+                onDeleteSession={handleDeleteSession}
               />
             )}
           </AnimatePresence>
@@ -699,6 +730,99 @@ function DashboardTab({ sessions }: { sessions: ChatSession[] }) {
           </div>
         )}
       </div>
+    </motion.div>
+  );
+}
+
+// Chat Logs Tab
+function ChatLogsTab({ sessions, onClearAll, onDeleteSession }: { sessions: ChatSession[]; onClearAll: () => void; onDeleteSession: (id: string) => void }) {
+  const [expandedSession, setExpandedSession] = useState<string | null>(null);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
+    >
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-900">Chat Logs</h2>
+        {sessions.length > 0 && (
+          <button
+            onClick={onClearAll}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <Trash2 size={16} /> Clear All Logs
+          </button>
+        )}
+      </div>
+
+      {sessions.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-sm">
+          <MessageSquare size={48} className="mx-auto text-slate-300 mb-4" />
+          <p className="text-slate-500">No chat logs available</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {sessions.map((session) => (
+            <div key={session.sessionId} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div 
+                className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
+                onClick={() => setExpandedSession(expandedSession === session.sessionId ? null : session.sessionId)}
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <User size={18} className="text-blue-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900 truncate">{session.userName}</p>
+                    <p className="text-xs text-slate-500">
+                      {new Date(session.startedAt).toLocaleDateString()} · {session.messages.length} messages
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDeleteSession(session.sessionId); }}
+                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  {expandedSession === session.sessionId ? (
+                    <ChevronUp size={20} className="text-slate-400" />
+                  ) : (
+                    <ChevronDown size={20} className="text-slate-400" />
+                  )}
+                </div>
+              </div>
+
+              {expandedSession === session.sessionId && (
+                <div className="border-t border-slate-200 p-4 bg-slate-50 max-h-96 overflow-y-auto">
+                  <div className="space-y-3">
+                    {session.messages.map((msg, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div className={`max-w-[80%] px-3 py-2 rounded-lg text-sm ${
+                          msg.role === 'user'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white border border-slate-200 text-slate-700'
+                        }`}>
+                          <p className="break-words">{msg.text}</p>
+                          <p className="text-[10px] opacity-70 mt-1">
+                            {new Date(msg.timestamp).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 }

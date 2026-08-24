@@ -69,3 +69,13 @@ export function logMessage(
 export function getAllSessions(): ChatSession[] {
   return loadSessions();
 }
+
+export function clearAllSessions(): void {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+export function deleteSession(sessionId: string): void {
+  const sessions = loadSessions();
+  const filtered = sessions.filter((s) => s.sessionId !== sessionId);
+  saveSessions(filtered);
+}
