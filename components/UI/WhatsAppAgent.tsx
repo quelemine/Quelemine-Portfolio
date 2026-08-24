@@ -30,7 +30,7 @@ const MAX_H = 800;
 function getBotReply(input: string, name: string): { text: string; whatsappMsg?: string; attachment?: { name: string; url: string; type: string } } {
   const q = input.toLowerCase().trim();
 
-  if (/who is isaac|tell me about isaac|about isaac|introduce|isaac quelemine|quelemine/.test(q))
+  if (/who is isaac|tell me about isaac|about isaac|introduce|isaac quelemine|quelemine|what do you know about (him|isaac)|tell me (more|something) about (him|isaac)/.test(q))
     return {
       text: `Isaac L. Quelemine is a Liberian Junior Software Engineer and Full Stack Developer currently based in Kigali, Rwanda. He specializes in React.js, Java, Spring Boot, PHP, MySQL, and PostgreSQL. He holds an Associate Degree in Computer Programming from Rauf Denktas University (Northern Cyprus) and is currently studying Software Engineering at UNILAK (Rwanda) and Information Technology at BYU Pathway Worldwide. He is open to full-time, part-time, and freelance opportunities. Want to know more about his skills, projects, or how to contact him, ${name}? 😊`,
     };
@@ -47,17 +47,17 @@ function getBotReply(input: string, name: string): { text: string; whatsappMsg?:
       whatsappMsg: `Hi Isaac! I'm ${name}. I'd like to collaborate on a project with you. Can we talk?`,
     };
 
-  if (/skill|tech|stack|react|java|php|spring|mysql|language/.test(q))
+  if (/skill|tech|stack|react|java|php|spring|mysql|language|what (can|does) (he|isaac) (do|know|use)|what (technologies|tools|languages|frameworks) does (he|isaac) (use|know|work with)/.test(q))
     return {
       text: `Isaac's core stack includes React.js, Java, Spring Boot, PHP, MySQL, and PostgreSQL — covering both frontend and backend development. He also works with HTML5, CSS3, JavaScript, Git, and Linux. Anything else you'd like to know, ${name}? ⚡`,
     };
 
-  if (/education|degree|university|school|study|student/.test(q))
+  if (/education|degree|university|school|study|student|where did (he|isaac) (study|go to school|learn)|what (did|does) (he|isaac) (study|learn)/.test(q))
     return {
       text: `Isaac holds an Associate Degree in Computer Programming from Rauf Denktas University (Northern Cyprus). He is currently studying Software Engineering at UNILAK (University of Lay Adventist of Kigali, Rwanda) and Information Technology at BYU Pathway Worldwide – Ensign College (online). 🎓`,
     };
 
-  if (/location|where|country|rwanda|liberia|based/.test(q))
+  if (/location|where|country|rwanda|liberia|based|where (is|does) (he|isaac) (live|work|stay)/.test(q))
     return {
       text: `Isaac is a Liberian software engineer currently based in Kigali, Rwanda. His background spans Liberia, Northern Cyprus, and Rwanda. 🌍`,
     };
@@ -107,7 +107,7 @@ function getBotReply(input: string, name: string): { text: string; whatsappMsg?:
     };
 
   return {
-    text: `Thanks, ${name}! For the best response, I recommend reaching Isaac directly on WhatsApp — he typically replies within minutes. You can also email him at ${EMAIL}. Is there anything specific about his skills or experience I can help with? 😊`,
+    text: `I understand your question, ${name}! I can tell you about Isaac's skills, projects, education, background, or how to contact him. You can ask things like:\n\n• "What are his skills?"\n• "Tell me about his projects"\n• "Where did he study?"\n• "How can I contact him?"\n• "Is he available for work?"\n\nOr reach Isaac directly on WhatsApp for detailed responses — he typically replies within minutes! 😊`,
     whatsappMsg: `Hi Isaac! I'm ${name}. I have a question from your portfolio website.`,
   };
 }
