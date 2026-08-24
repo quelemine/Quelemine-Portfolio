@@ -683,6 +683,13 @@ function DashboardTab({ sessions }: { sessions: ChatSession[] }) {
   const recentCount = sessions.filter((s) => Date.now() - new Date(s.lastActiveAt).getTime() < 86400000).length;
   const errorCount = sessions.reduce((acc, s) => acc + s.messages.filter((m) => m.status === "error").length, 0);
 
+  const handleClearCache = () => {
+    if (confirm('Are you sure you want to clear all cache? This will clear all localStorage data including chat logs. This action cannot be undone.')) {
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -690,7 +697,15 @@ function DashboardTab({ sessions }: { sessions: ChatSession[] }) {
       exit={{ opacity: 0, y: -20 }}
       className="space-y-6"
     >
-      <h2 className="text-2xl font-bold text-slate-900">Dashboard</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-900">Dashboard</h2>
+        <button
+          onClick={handleClearCache}
+          className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Trash2 size={16} /> Clear Cache
+        </button>
+      </div>
       
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
