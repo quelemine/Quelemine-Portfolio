@@ -1,96 +1,212 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ChevronDown, ChevronUp, LogOut, MessageSquare, User, Clock, Filter } from "lucide-react";
+import { 
+  LogOut, MessageSquare, User, Settings, Upload, Lock, 
+  FolderOpen, GraduationCap, Palette, FileText, Save, Plus,
+  Edit2, Trash2, X, Check, ChevronDown, ChevronUp, Image as ImageIcon
+} from "lucide-react";
 import { getAllSessions, type ChatSession } from "@/lib/chatLogger";
+import type { AdminSettings, Project, Education } from "@/types/admin";
 
 const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "";
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("en-US", {
-    month: "short", day: "numeric", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
-}
-
-function timeSince(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
+type TabType = 'dashboard' | 'profile' | 'cv' | 'password' | 'projects' | 'education' | 'colors' | 'content';
 
 export default function AdminDashboard() {
-  const [authed, setAuthed]         = useState(false);
-  const [pwInput, setPwInput]       = useState("");
-  const [pwError, setPwError]       = useState(false);
-  const [sessions, setSessions]     = useState<ChatSession[]>([]);
-  const [search, setSearch]         = useState("");
-  const [sortAsc, setSortAsc]       = useState(false);
-  const [expanded, setExpanded]     = useState<string | null>(null);
-  const [filter, setFilter]         = useState<"all" | "recent">("all");
-  const [now, setNow]               = useState(() => Date.now());
+  const [authed, setAuthed] = useState(false);
+  const [pwInput, setPwInput] = useState("");
+  const [pwError, setPwError] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [settings, setSettings] = useState<AdminSettings | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editingEducation, setEditingEducation] = useState<Education | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authed) return;
+    loadSettings();
     setTimeout(() => setSessions(getAllSessions()), 0);
-    const interval = setInterval(() => setNow(Date.now()), 60000);
-    return () => clearInterval(interval);
   }, [authed]);
+
+  const loadSettings = async () => {
+    try {
+      const response = await fetch('/api/admin/settings');
+      if (response.ok) {
+        const data = await response.json();
+        setSettings(data);
+      }
+    } catch (error) {
+      showNotification('error', 'Failed to load settings');
+    }
+  };
 
   const login = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pwInput === ADMIN_PASSWORD) { setAuthed(true); setPwError(false); }
-    else { setPwError(true); setPwInput(""); }
+    if (pwInput === ADMIN_PASSWORD) { 
+      setAuthed(true); 
+      setPwError(false); 
+    } else { 
+      setPwError(true); 
+      setPwInput(""); 
+    }
   };
 
-  const filtered = useMemo(() => {
-    let list = [...sessions];
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter((s) =>
-        s.userName.toLowerCase().includes(q) ||
-        s.sessionId.includes(q) ||
-        s.messages.some((m) => m.text.toLowerCase().includes(q))
-      );
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleSaveSettings = async (updates: Partial<AdminSettings>) => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSettings(data);
+        showNotification('success', 'Settings saved successfully');
+      } else {
+        showNotification('error', 'Failed to save settings');
+      }
+    } catch (error) {
+      showNotification('error', 'Failed to save settings');
+    } finally {
+      setLoading(false);
     }
-    if (filter === "recent") {
-      const cutoff = now - 24 * 60 * 60 * 1000;
-      list = list.filter((s) => new Date(s.lastActiveAt).getTime() > cutoff);
+  };
+
+  const handleFileUpload = async (file: File, type: 'profile' | 'cv') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+
+    try {
+      const response = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (type === 'profile') {
+          await handleSaveSettings({ profile: { ...settings!.profile, profileImage: data.url } });
+        } else {
+          await handleSaveSettings({ cv: { ...settings!.cv, url: data.url, filename: data.filename, uploadDate: new Date().toISOString() } });
+        }
+        showNotification('success', 'File uploaded successfully');
+      } else {
+        showNotification('error', 'Failed to upload file');
+      }
+    } catch (error) {
+      showNotification('error', 'Failed to upload file');
     }
-    list.sort((a, b) => {
-      const diff = new Date(a.lastActiveAt).getTime() - new Date(b.lastActiveAt).getTime();
-      return sortAsc ? diff : -diff;
-    });
-    return list;
-  }, [sessions, search, sortAsc, filter, now]);
+  };
 
-  const totalMessages = sessions.reduce((acc, s) => acc + s.messages.length, 0);
-  const recentCount   = sessions.filter((s) => now - new Date(s.lastActiveAt).getTime() < 86400000).length;
-  const errorCount    = sessions.reduce((acc, s) => acc + s.messages.filter((m) => m.status === "error").length, 0);
+  const handlePasswordChange = async (currentPassword: string, newPassword: string) => {
+    try {
+      const response = await fetch('/api/admin/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
 
-  // Top questions — user messages sorted by frequency
-  const questionFreq: Record<string, number> = {};
-  sessions.forEach((s) => s.messages.filter((m) => m.role === "user").forEach((m) => {
-    const key = m.text.trim().toLowerCase();
-    questionFreq[key] = (questionFreq[key] ?? 0) + 1;
-  }));
-  const topQuestions = Object.entries(questionFreq).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      if (response.ok) {
+        showNotification('success', 'Password changed successfully');
+      } else {
+        showNotification('error', 'Failed to change password');
+      }
+    } catch (error) {
+      showNotification('error', 'Failed to change password');
+    }
+  };
 
-  // Conversations by day (last 7 days)
-  const dayLabels = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (6 - i));
-    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-  });
-  const dayKeys = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (6 - i));
-    return d.toDateString();
-  });
-  const byDay = dayKeys.map((dk) => sessions.filter((s) => new Date(s.startedAt).toDateString() === dk).length);
-  const maxDay = Math.max(...byDay, 1);
+  const handleProjectSave = async (project: Project) => {
+    try {
+      const url = editingProject ? '/api/admin/projects' : '/api/admin/projects';
+      const method = editingProject ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(project)
+      });
+
+      if (response.ok) {
+        await loadSettings();
+        setEditingProject(null);
+        showNotification('success', 'Project saved successfully');
+      } else {
+        showNotification('error', 'Failed to save project');
+      }
+    } catch (error) {
+      showNotification('error', 'Failed to save project');
+    }
+  };
+
+  const handleProjectDelete = async (id: number) => {
+    try {
+      const response = await fetch(`/api/admin/projects?id=${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        await loadSettings();
+        showNotification('success', 'Project deleted successfully');
+      } else {
+        showNotification('error', 'Failed to delete project');
+      }
+    } catch (error) {
+      showNotification('error', 'Failed to delete project');
+    }
+  };
+
+  const handleEducationSave = async (education: Education) => {
+    try {
+      const url = editingEducation ? '/api/admin/education' : '/api/admin/education';
+      const method = editingEducation ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(education)
+      });
+
+      if (response.ok) {
+        await loadSettings();
+        setEditingEducation(null);
+        showNotification('success', 'Education saved successfully');
+      } else {
+        showNotification('error', 'Failed to save education');
+      }
+    } catch (error) {
+      showNotification('error', 'Failed to save education');
+    }
+  };
+
+  const handleEducationDelete = async (id: number) => {
+    try {
+      const response = await fetch(`/api/admin/education?id=${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        await loadSettings();
+        showNotification('success', 'Education deleted successfully');
+      } else {
+        showNotification('error', 'Failed to delete education');
+      }
+    } catch (error) {
+      showNotification('error', 'Failed to delete education');
+    }
+  };
 
   if (!authed) {
     return (
@@ -102,10 +218,10 @@ export default function AdminDashboard() {
         >
           <div className="text-center mb-8">
             <div className="w-14 h-14 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center mx-auto mb-4">
-              <MessageSquare size={26} className="text-blue-400" />
+              <Settings size={26} className="text-blue-400" />
             </div>
-            <h1 className="text-white font-bold text-xl">Admin Dashboard</h1>
-            <p className="text-slate-400 text-sm mt-1">Chat Activity Logs</p>
+            <h1 className="text-white font-bold text-xl">Admin Panel</h1>
+            <p className="text-slate-400 text-sm mt-1">Manage your website</p>
           </div>
           <form onSubmit={login} className="space-y-4">
             <input
@@ -126,193 +242,1351 @@ export default function AdminDashboard() {
     );
   }
 
+  const tabs = [
+    { id: 'dashboard' as TabType, label: 'Dashboard', icon: MessageSquare },
+    { id: 'profile' as TabType, label: 'Profile', icon: User },
+    { id: 'cv' as TabType, label: 'CV', icon: FileText },
+    { id: 'password' as TabType, label: 'Password', icon: Lock },
+    { id: 'projects' as TabType, label: 'Projects', icon: FolderOpen },
+    { id: 'education' as TabType, label: 'Education', icon: GraduationCap },
+    { id: 'colors' as TabType, label: 'Colors', icon: Palette },
+    { id: 'content' as TabType, label: 'Content', icon: Settings },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 overflow-x-hidden">
       {/* Top bar */}
-      <div className="bg-[#0B1F3A] px-6 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-white font-bold text-lg">Chat Activity Logs</h1>
-          <p className="text-slate-400 text-xs">Isaac&apos;s AI Assistant · Admin View</p>
+      <div className="bg-[#0B1F3A] px-4 sm:px-6 py-4 flex items-center justify-between overflow-x-hidden">
+        <div className="min-w-0">
+          <h1 className="text-white font-bold text-lg truncate">Admin Panel</h1>
+          <p className="text-slate-400 text-xs truncate">Isaac&apos;s Website · Admin View</p>
         </div>
-        <button onClick={() => setAuthed(false)} className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors">
+        <button onClick={() => setAuthed(false)} className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors flex-shrink-0">
           <LogOut size={15} /> Sign out
         </button>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { label: "Total Sessions",  value: sessions.length,  color: "text-blue-600" },
-            { label: "Total Messages",  value: totalMessages,    color: "text-indigo-600" },
-            { label: "Active (24h)",    value: recentCount,      color: "text-green-600" },
-            { label: "Errors",          value: errorCount,       color: "text-red-500" },
-          ].map((s) => (
-            <div key={s.label} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-              <p className="text-slate-500 text-xs mb-1">{s.label}</p>
-              <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+      <div className="flex flex-col lg:flex-row min-h-[calc(100vh-64px)] overflow-x-hidden">
+        {/* Sidebar */}
+        <div className="lg:w-64 bg-white border-r border-slate-200 p-4 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] overflow-y-auto overflow-x-hidden">
+          <nav className="space-y-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <tab.icon size={18} className="flex-shrink-0" />
+                <span className="truncate">{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden min-w-0">
+          <AnimatePresence mode="wait">
+            {activeTab === 'dashboard' && (
+              <DashboardTab key="dashboard" sessions={sessions} />
+            )}
+            {activeTab === 'profile' && (
+              <ProfileTab 
+                key="profile" 
+                settings={settings} 
+                onFileUpload={handleFileUpload}
+                onSave={handleSaveSettings}
+                loading={loading}
+              />
+            )}
+            {activeTab === 'cv' && (
+              <CVTab 
+                key="cv" 
+                settings={settings} 
+                onFileUpload={handleFileUpload}
+                onSave={handleSaveSettings}
+                loading={loading}
+              />
+            )}
+            {activeTab === 'password' && (
+              <PasswordTab key="password" onChangePassword={handlePasswordChange} />
+            )}
+            {activeTab === 'projects' && (
+              <ProjectsTab 
+                key="projects" 
+                settings={settings}
+                editingProject={editingProject}
+                setEditingProject={setEditingProject}
+                onSaveProject={handleProjectSave}
+                onDeleteProject={handleProjectDelete}
+              />
+            )}
+            {activeTab === 'education' && (
+              <EducationTab 
+                key="education" 
+                settings={settings}
+                editingEducation={editingEducation}
+                setEditingEducation={setEditingEducation}
+                onSaveEducation={handleEducationSave}
+                onDeleteEducation={handleEducationDelete}
+              />
+            )}
+            {activeTab === 'colors' && (
+              <ColorsTab 
+                key="colors" 
+                settings={settings} 
+                onSave={handleSaveSettings}
+                loading={loading}
+              />
+            )}
+            {activeTab === 'content' && (
+              <ContentTab 
+                key="content" 
+                settings={settings} 
+                onSave={handleSaveSettings}
+                loading={loading}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Notification */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className={`fixed bottom-4 right-4 px-6 py-3 rounded-xl shadow-lg text-sm font-medium ${
+              notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`}
+          >
+            {notification.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Dashboard Tab
+function DashboardTab({ sessions }: { sessions: ChatSession[] }) {
+  const totalMessages = sessions.reduce((acc, s) => acc + s.messages.length, 0);
+  const recentCount = sessions.filter((s) => Date.now() - new Date(s.lastActiveAt).getTime() < 86400000).length;
+  const errorCount = sessions.reduce((acc, s) => acc + s.messages.filter((m) => m.status === "error").length, 0);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
+    >
+      <h2 className="text-2xl font-bold text-slate-900">Dashboard</h2>
+      
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: "Total Sessions", value: sessions.length, color: "text-blue-600" },
+          { label: "Total Messages", value: totalMessages, color: "text-indigo-600" },
+          { label: "Active (24h)", value: recentCount, color: "text-green-600" },
+          { label: "Errors", value: errorCount, color: "text-red-500" },
+        ].map((s) => (
+          <div key={s.label} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <p className="text-slate-500 text-xs mb-1">{s.label}</p>
+            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">Recent Activity</h3>
+        {sessions.length === 0 ? (
+          <p className="text-slate-400 text-sm">No activity yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {sessions.slice(0, 5).map((session) => (
+              <div key={session.sessionId} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <User size={14} className="text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900 truncate">{session.userName}</p>
+                  <p className="text-xs text-slate-500">{session.messages.length} messages</p>
+                </div>
+                <p className="text-xs text-slate-400">
+                  {Math.floor((Date.now() - new Date(session.lastActiveAt).getTime()) / 60000)}m ago
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// Profile Tab
+function ProfileTab({ settings, onFileUpload, onSave, loading }: any) {
+  const [profileData, setProfileData] = useState(settings?.profile || {});
+
+  useEffect(() => {
+    if (settings?.profile) {
+      setProfileData(settings.profile);
+    }
+  }, [settings]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onFileUpload(file, 'profile');
+    }
+  };
+
+  const handleSave = () => {
+    onSave({ profile: profileData });
+  };
+
+  if (!settings) return <div className="text-slate-500">Loading...</div>;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
+    >
+      <h2 className="text-2xl font-bold text-slate-900">Profile Settings</h2>
+      
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6 overflow-x-hidden">
+        {/* Profile Image */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-3">Profile Image</label>
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-slate-100 border-2 border-slate-200 flex-shrink-0">
+              {profileData.profileImage ? (
+                <img src={profileData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <ImageIcon size={32} className="text-slate-400" />
+                </div>
+              )}
+            </div>
+            <div className="text-center sm:text-left">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+                id="profile-image-upload"
+              />
+              <label
+                htmlFor="profile-image-upload"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 cursor-pointer transition-colors"
+              >
+                <Upload size={16} />
+                Upload Image
+              </label>
+              <p className="text-xs text-slate-500 mt-2">Recommended: Square image, at least 400x400px</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Profile Information */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">First Name</label>
+            <input
+              type="text"
+              value={profileData.name?.split(' ')[0] || ''}
+              onChange={(e) => setProfileData({ ...profileData, name: `${e.target.value} ${profileData.name?.split(' ').slice(1).join(' ') || ''}` })}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Last Name</label>
+            <input
+              type="text"
+              value={profileData.name?.split(' ').slice(1).join(' ') || ''}
+              onChange={(e) => setProfileData({ ...profileData, name: `${profileData.name?.split(' ')[0] || ''} ${e.target.value}` })}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
+            <input
+              type="text"
+              value={profileData.title || ''}
+              onChange={(e) => setProfileData({ ...profileData, title: e.target.value })}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Subtitle</label>
+            <input
+              type="text"
+              value={profileData.subtitle || ''}
+              onChange={(e) => setProfileData({ ...profileData, subtitle: e.target.value })}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
+            <textarea
+              value={profileData.description || ''}
+              onChange={(e) => setProfileData({ ...profileData, description: e.target.value })}
+              rows={3}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
+            <input
+              type="text"
+              value={profileData.location || ''}
+              onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div className="flex items-center">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={profileData.availableForWork || false}
+                onChange={(e) => setProfileData({ ...profileData, availableForWork: e.target.checked })}
+                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-slate-700">Available for Work</span>
+            </label>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={loading}
+          className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          <Save size={16} />
+          {loading ? 'Saving...' : 'Save Changes'}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// CV Tab
+function CVTab({ settings, onFileUpload, onSave, loading }: any) {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onFileUpload(file, 'cv');
+    }
+  };
+
+  if (!settings) return <div className="text-slate-500">Loading...</div>;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
+    >
+      <h2 className="text-2xl font-bold text-slate-900">CV Management</h2>
+      
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-3">Upload CV</label>
+          <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
+            <input
+              type="file"
+              accept=".pdf"
+              onChange={handleFileChange}
+              className="hidden"
+              id="cv-upload"
+            />
+            <label
+              htmlFor="cv-upload"
+              className="cursor-pointer"
+            >
+              <Upload size={32} className="mx-auto text-slate-400 mb-3" />
+              <p className="text-sm text-slate-600 mb-1">Click to upload or drag and drop</p>
+              <p className="text-xs text-slate-400">PDF files only</p>
+            </label>
+          </div>
+        </div>
+
+        {settings?.cv?.url && (
+          <div className="p-4 bg-slate-50 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-900">Current CV</p>
+                <p className="text-xs text-slate-500">{settings.cv.filename}</p>
+              </div>
+              <a
+                href={settings.cv.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 text-sm hover:underline"
+              >
+                View CV
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// Password Tab
+function PasswordTab({ onChangePassword }: any) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    onChangePassword(currentPassword, newPassword);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
+    >
+      <h2 className="text-2xl font-bold text-slate-900">Change Password</h2>
+      
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Current Password</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">New Password</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Confirm New Password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              required
+            />
+          </div>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <button
+            type="submit"
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            <Lock size={16} />
+            Change Password
+          </button>
+        </form>
+      </div>
+    </motion.div>
+  );
+}
+
+// Projects Tab
+function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProject, onDeleteProject }: any) {
+  const [newProject, setNewProject] = useState<Partial<Project>>({
+    title: '',
+    description: '',
+    image: '',
+    technologies: [],
+    category: 'fullstack',
+    demo: '',
+    featured: false,
+    finished: true
+  });
+
+  const handleSave = () => {
+    if (editingProject) {
+      onSaveProject(editingProject);
+    } else if (newProject.title && newProject.description) {
+      onSaveProject({
+        ...newProject,
+        id: 0,
+        technologies: newProject.technologies || []
+      } as Project);
+      setNewProject({
+        title: '',
+        description: '',
+        image: '',
+        technologies: [],
+        category: 'fullstack',
+        demo: '',
+        featured: false,
+        finished: true
+      });
+    }
+  };
+
+  const handleTechnologiesChange = (value: string) => {
+    const technologies = value.split(',').map(t => t.trim()).filter(t => t);
+    if (editingProject) {
+      setEditingProject({ ...editingProject, technologies });
+    } else {
+      setNewProject({ ...newProject, technologies });
+    }
+  };
+
+  if (!settings) return <div className="text-slate-500">Loading...</div>;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
+    >
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-900">Projects</h2>
+        <button
+          onClick={() => setEditingProject(null)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={16} />
+          Add Project
+        </button>
+      </div>
+
+      {/* Add/Edit Form */}
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm overflow-x-hidden">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">
+          {editingProject ? 'Edit Project' : 'Add New Project'}
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
+            <input
+              type="text"
+              value={editingProject?.title || newProject.title}
+              onChange={(e) => {
+                if (editingProject) {
+                  setEditingProject({ ...editingProject, title: e.target.value });
+                } else {
+                  setNewProject({ ...newProject, title: e.target.value });
+                }
+              }}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
+            <textarea
+              value={editingProject?.description || newProject.description}
+              onChange={(e) => {
+                if (editingProject) {
+                  setEditingProject({ ...editingProject, description: e.target.value });
+                } else {
+                  setNewProject({ ...newProject, description: e.target.value });
+                }
+              }}
+              rows={3}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Image URL</label>
+            <input
+              type="text"
+              value={editingProject?.image || newProject.image}
+              onChange={(e) => {
+                if (editingProject) {
+                  setEditingProject({ ...editingProject, image: e.target.value });
+                } else {
+                  setNewProject({ ...newProject, image: e.target.value });
+                }
+              }}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Category</label>
+            <select
+              value={editingProject?.category || newProject.category}
+              onChange={(e) => {
+                if (editingProject) {
+                  setEditingProject({ ...editingProject, category: e.target.value as any });
+                } else {
+                  setNewProject({ ...newProject, category: e.target.value as any });
+                }
+              }}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            >
+              <option value="frontend">Frontend</option>
+              <option value="backend">Backend</option>
+              <option value="fullstack">Full Stack</option>
+              <option value="database">Database</option>
+            </select>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Technologies (comma-separated)</label>
+            <input
+              type="text"
+              value={(editingProject?.technologies || newProject.technologies || []).join(', ')}
+              onChange={(e) => handleTechnologiesChange(e.target.value)}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              placeholder="React, Node.js, MongoDB"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Demo URL</label>
+            <input
+              type="text"
+              value={editingProject?.demo || newProject.demo}
+              onChange={(e) => {
+                if (editingProject) {
+                  setEditingProject({ ...editingProject, demo: e.target.value });
+                } else {
+                  setNewProject({ ...newProject, demo: e.target.value });
+                }
+              }}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">GitHub URL (optional)</label>
+            <input
+              type="text"
+              value={editingProject?.github || ''}
+              onChange={(e) => {
+                if (editingProject) {
+                  setEditingProject({ ...editingProject, github: e.target.value });
+                }
+              }}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={editingProject?.featured || newProject.featured}
+                onChange={(e) => {
+                  if (editingProject) {
+                    setEditingProject({ ...editingProject, featured: e.target.checked });
+                  } else {
+                    setNewProject({ ...newProject, featured: e.target.checked });
+                  }
+                }}
+                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-slate-700">Featured</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={editingProject?.finished !== undefined ? editingProject.finished : newProject.finished}
+                onChange={(e) => {
+                  if (editingProject) {
+                    setEditingProject({ ...editingProject, finished: e.target.checked });
+                  } else {
+                    setNewProject({ ...newProject, finished: e.target.checked });
+                  }
+                }}
+                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-slate-700">Finished</span>
+            </label>
+          </div>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={handleSave}
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            <Save size={16} />
+            {editingProject ? 'Update Project' : 'Add Project'}
+          </button>
+          {editingProject && (
+            <button
+              onClick={() => setEditingProject(null)}
+              className="flex items-center gap-2 px-6 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors"
+            >
+              <X size={16} />
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Projects List */}
+      <div className="space-y-3">
+        {settings.projects?.map((project: Project) => (
+          <div key={project.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-semibold text-slate-900">{project.title}</h3>
+                  {project.featured && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">Featured</span>}
+                  {project.finished ? (
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">Finished</span>
+                  ) : (
+                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">In Progress</span>
+                  )}
+                </div>
+                <p className="text-sm text-slate-600 mb-2 line-clamp-2">{project.description}</p>
+                <div className="flex flex-wrap gap-1">
+                  {project.technologies.map((tech) => (
+                    <span key={tech} className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded">
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEditingProject(project)}
+                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <Edit2 size={16} />
+                </button>
+                <button
+                  onClick={() => onDeleteProject(project.id)}
+                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+// Education Tab
+function EducationTab({ settings, editingEducation, setEditingEducation, onSaveEducation, onDeleteEducation }: any) {
+  const [newEducation, setNewEducation] = useState<Partial<Education>>({
+    degree: '',
+    institution: '',
+    location: '',
+    period: '',
+    status: 'In Progress',
+    description: '',
+    icon: 'GraduationCap'
+  });
+
+  const handleSave = () => {
+    if (editingEducation) {
+      onSaveEducation(editingEducation);
+    } else if (newEducation.degree && newEducation.institution) {
+      onSaveEducation({
+        ...newEducation,
+        id: 0
+      } as Education);
+      setNewEducation({
+        degree: '',
+        institution: '',
+        location: '',
+        period: '',
+        status: 'In Progress',
+        description: '',
+        icon: 'GraduationCap'
+      });
+    }
+  };
+
+  if (!settings) return <div className="text-slate-500">Loading...</div>;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
+    >
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-900">Education</h2>
+        <button
+          onClick={() => setEditingEducation(null)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={16} />
+          Add Education
+        </button>
+      </div>
+
+      {/* Add/Edit Form */}
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm overflow-x-hidden">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">
+          {editingEducation ? 'Edit Education' : 'Add New Education'}
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Degree</label>
+            <input
+              type="text"
+              value={editingEducation?.degree || newEducation.degree}
+              onChange={(e) => {
+                if (editingEducation) {
+                  setEditingEducation({ ...editingEducation, degree: e.target.value });
+                } else {
+                  setNewEducation({ ...newEducation, degree: e.target.value });
+                }
+              }}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Institution</label>
+            <input
+              type="text"
+              value={editingEducation?.institution || newEducation.institution}
+              onChange={(e) => {
+                if (editingEducation) {
+                  setEditingEducation({ ...editingEducation, institution: e.target.value });
+                } else {
+                  setNewEducation({ ...newEducation, institution: e.target.value });
+                }
+              }}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
+            <input
+              type="text"
+              value={editingEducation?.location || newEducation.location}
+              onChange={(e) => {
+                if (editingEducation) {
+                  setEditingEducation({ ...editingEducation, location: e.target.value });
+                } else {
+                  setNewEducation({ ...newEducation, location: e.target.value });
+                }
+              }}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Period</label>
+            <input
+              type="text"
+              value={editingEducation?.period || newEducation.period}
+              onChange={(e) => {
+                if (editingEducation) {
+                  setEditingEducation({ ...editingEducation, period: e.target.value });
+                } else {
+                  setNewEducation({ ...newEducation, period: e.target.value });
+                }
+              }}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              placeholder="e.g., 2020 - 2024 or Current"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
+            <select
+              value={editingEducation?.status || newEducation.status}
+              onChange={(e) => {
+                if (editingEducation) {
+                  setEditingEducation({ ...editingEducation, status: e.target.value as any });
+                } else {
+                  setNewEducation({ ...newEducation, status: e.target.value as any });
+                }
+              }}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            >
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
+            <textarea
+              value={editingEducation?.description || newEducation.description}
+              onChange={(e) => {
+                if (editingEducation) {
+                  setEditingEducation({ ...editingEducation, description: e.target.value });
+                } else {
+                  setNewEducation({ ...newEducation, description: e.target.value });
+                }
+              }}
+              rows={3}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Icon</label>
+            <select
+              value={editingEducation?.icon || newEducation.icon}
+              onChange={(e) => {
+                if (editingEducation) {
+                  setEditingEducation({ ...editingEducation, icon: e.target.value as any });
+                } else {
+                  setNewEducation({ ...newEducation, icon: e.target.value as any });
+                }
+              }}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            >
+              <option value="GraduationCap">Graduation Cap</option>
+              <option value="BookOpen">Book Open</option>
+              <option value="Award">Award</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={handleSave}
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            <Save size={16} />
+            {editingEducation ? 'Update Education' : 'Add Education'}
+          </button>
+          {editingEducation && (
+            <button
+              onClick={() => setEditingEducation(null)}
+              className="flex items-center gap-2 px-6 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors"
+            >
+              <X size={16} />
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Education List */}
+      <div className="space-y-3">
+        {settings.education?.map((edu: Education) => (
+          <div key={edu.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-semibold text-slate-900">{edu.degree}</h3>
+                  <span className={`px-2 py-0.5 text-xs rounded-full ${
+                    edu.status === 'Completed' 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {edu.status}
+                  </span>
+                </div>
+                <p className="text-sm text-blue-600 font-medium mb-1">{edu.institution}</p>
+                <p className="text-sm text-slate-600 mb-2">{edu.location} · {edu.period}</p>
+                <p className="text-sm text-slate-500 line-clamp-2">{edu.description}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEditingEducation(edu)}
+                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <Edit2 size={16} />
+                </button>
+                <button
+                  onClick={() => onDeleteEducation(edu.id)}
+                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+// Colors Tab
+function ColorsTab({ settings, onSave, loading }: any) {
+  const [colors, setColors] = useState(settings?.colors || {});
+
+  useEffect(() => {
+    if (settings?.colors) {
+      setColors(settings.colors);
+    }
+  }, [settings]);
+
+  const handleSave = () => {
+    onSave({ colors });
+  };
+
+  if (!settings) return <div className="text-slate-500">Loading...</div>;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
+    >
+      <h2 className="text-2xl font-bold text-slate-900">Color Customization</h2>
+      
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6 overflow-x-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {Object.entries(colors).map(([key, value]: [string, any]) => (
+            <div key={key}>
+              <label className="block text-sm font-medium text-slate-700 mb-2 capitalize">
+                {key.replace(/([A-Z])/g, ' $1').trim()}
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={value}
+                  onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
+                  className="w-12 h-12 rounded cursor-pointer border-0"
+                />
+                <input
+                  type="text"
+                  value={value}
+                  onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
+                  className="flex-1 px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-mono text-sm"
+                />
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Analytics row */}
-        <div className="grid sm:grid-cols-2 gap-4">
-          {/* Conversations by day */}
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <p className="text-slate-700 font-semibold text-sm mb-4">Conversations — Last 7 Days</p>
-            <div className="flex items-end gap-2 h-24">
-              {byDay.map((count, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-slate-500">{count > 0 ? count : ""}</span>
-                  <div
-                    className="w-full rounded-t bg-blue-500 transition-all"
-                    style={{ height: `${Math.max((count / maxDay) * 72, count > 0 ? 6 : 2)}px`, opacity: count > 0 ? 1 : 0.2 }}
-                  />
-                  <span className="text-[9px] text-slate-400 text-center leading-tight">{dayLabels[i].split(",")[0]}</span>
-                </div>
-              ))}
+        <button
+          onClick={handleSave}
+          disabled={loading}
+          className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          <Save size={16} />
+          {loading ? 'Saving...' : 'Save Colors'}
+        </button>
+      </div>
+
+      {/* Preview */}
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">Preview</h3>
+        <div 
+          className="p-6 rounded-xl"
+          style={{ 
+            backgroundColor: colors.background || '#ffffff',
+            color: colors.text || '#1e293b'
+          }}
+        >
+          <h4 
+            className="text-xl font-bold mb-2"
+            style={{ color: colors.primary || '#2563eb' }}
+          >
+            Sample Heading
+          </h4>
+          <p className="mb-4">This is a preview of how your color choices will look on the website.</p>
+          <button
+            className="px-4 py-2 rounded-lg text-white font-medium"
+            style={{ backgroundColor: colors.primary || '#2563eb' }}
+          >
+            Sample Button
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// Content Tab
+function ContentTab({ settings, onSave, loading }: any) {
+  const [content, setContent] = useState(settings?.siteContent || {});
+
+  useEffect(() => {
+    if (settings?.siteContent) {
+      setContent(settings.siteContent);
+    }
+  }, [settings]);
+
+  const handleSave = () => {
+    onSave({ siteContent: content });
+  };
+
+  if (!settings) return <div className="text-slate-500">Loading...</div>;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
+    >
+      <h2 className="text-2xl font-bold text-slate-900">Site Content</h2>
+      
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+        {/* Hero Section */}
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">Hero Section</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Badge</label>
+              <input
+                type="text"
+                value={content.hero?.badge || ''}
+                onChange={(e) => setContent({ ...content, hero: { ...content.hero, badge: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
+              <input
+                type="text"
+                value={content.hero?.title || ''}
+                onChange={(e) => setContent({ ...content, hero: { ...content.hero, title: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Title Accent</label>
+              <input
+                type="text"
+                value={content.hero?.titleAccent || ''}
+                onChange={(e) => setContent({ ...content, hero: { ...content.hero, titleAccent: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Subtitle</label>
+              <input
+                type="text"
+                value={content.hero?.subtitle || ''}
+                onChange={(e) => setContent({ ...content, hero: { ...content.hero, subtitle: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
+              <textarea
+                value={content.hero?.description || ''}
+                onChange={(e) => setContent({ ...content, hero: { ...content.hero, description: e.target.value } })}
+                rows={3}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">View Projects Button</label>
+              <input
+                type="text"
+                value={content.hero?.viewProjects || ''}
+                onChange={(e) => setContent({ ...content, hero: { ...content.hero, viewProjects: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Download CV Button</label>
+              <input
+                type="text"
+                value={content.hero?.downloadCV || ''}
+                onChange={(e) => setContent({ ...content, hero: { ...content.hero, downloadCV: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Contact Me Button</label>
+              <input
+                type="text"
+                value={content.hero?.contactMe || ''}
+                onChange={(e) => setContent({ ...content, hero: { ...content.hero, contactMe: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Available for Work Text</label>
+              <input
+                type="text"
+                value={content.hero?.availableForWork || ''}
+                onChange={(e) => setContent({ ...content, hero: { ...content.hero, availableForWork: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
             </div>
           </div>
-
-          {/* Top questions */}
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <p className="text-slate-700 font-semibold text-sm mb-4">Most Common Questions</p>
-            {topQuestions.length === 0 ? (
-              <p className="text-slate-400 text-xs">No questions yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {topQuestions.map(([q, count]) => (
-                  <div key={q} className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-slate-700 text-xs truncate capitalize">{q}</p>
-                      <div className="mt-1 h-1 rounded-full bg-slate-100 overflow-hidden">
-                        <div className="h-full bg-blue-400 rounded-full" style={{ width: `${(count / (topQuestions[0]?.[1] ?? 1)) * 100}%` }} />
-                      </div>
-                    </div>
-                    <span className="text-xs font-semibold text-blue-600 flex-shrink-0">{count}×</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, message, or session ID..."
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-400 transition-colors"
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilter(filter === "all" ? "recent" : "all")}
-              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
-                filter === "recent" ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
-              }`}
-            >
-              <Filter size={14} /> {filter === "recent" ? "Last 24h" : "All time"}
-            </button>
-            <button
-              onClick={() => setSortAsc(!sortAsc)}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-600 hover:border-slate-300 transition-colors"
-            >
-              {sortAsc ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              {sortAsc ? "Oldest" : "Newest"}
-            </button>
-          </div>
         </div>
 
-        {/* Session list */}
-        {filtered.length === 0 ? (
-          <div className="text-center py-16 text-slate-400">
-            <MessageSquare size={40} className="mx-auto mb-3 opacity-30" />
-            <p className="text-sm">No conversations found.</p>
+        {/* About Section */}
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">About Section</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Section Label</label>
+              <input
+                type="text"
+                value={content.about?.sectionLabel || ''}
+                onChange={(e) => setContent({ ...content, about: { ...content.about, sectionLabel: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Section Title</label>
+              <input
+                type="text"
+                value={content.about?.sectionTitle || ''}
+                onChange={(e) => setContent({ ...content, about: { ...content.about, sectionTitle: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Bio 1</label>
+              <textarea
+                value={content.about?.bio1 || ''}
+                onChange={(e) => setContent({ ...content, about: { ...content.about, bio1: e.target.value } })}
+                rows={2}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Bio 2</label>
+              <textarea
+                value={content.about?.bio2 || ''}
+                onChange={(e) => setContent({ ...content, about: { ...content.about, bio2: e.target.value } })}
+                rows={2}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Bio 3</label>
+              <textarea
+                value={content.about?.bio3 || ''}
+                onChange={(e) => setContent({ ...content, about: { ...content.about, bio3: e.target.value } })}
+                rows={2}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Bio 4</label>
+              <textarea
+                value={content.about?.bio4 || ''}
+                onChange={(e) => setContent({ ...content, about: { ...content.about, bio4: e.target.value } })}
+                rows={2}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Get In Touch Button</label>
+              <input
+                type="text"
+                value={content.about?.getInTouch || ''}
+                onChange={(e) => setContent({ ...content, about: { ...content.about, getInTouch: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Download CV Button</label>
+              <input
+                type="text"
+                value={content.about?.downloadCV || ''}
+                onChange={(e) => setContent({ ...content, about: { ...content.about, downloadCV: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {filtered.map((session) => {
-              const isOpen = expanded === session.sessionId;
-              const hasError = session.messages.some((m) => m.status === "error");
-              const isRecent = now - new Date(session.lastActiveAt).getTime() < 3600000;
-              return (
-                <div key={session.sessionId} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                  {/* Session header */}
-                  <button
-                    onClick={() => setExpanded(isOpen ? null : session.sessionId)}
-                    className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <User size={16} className="text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-slate-800 font-semibold text-sm">{session.userName}</p>
-                          {isRecent && <span className="text-[10px] font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Active</span>}
-                          {hasError && <span className="text-[10px] font-semibold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Error</span>}
-                        </div>
-                        <p className="text-slate-400 text-xs mt-0.5 font-mono">{session.sessionId}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 flex-shrink-0">
-                      <div className="text-right hidden sm:block">
-                        <p className="text-slate-500 text-xs flex items-center gap-1 justify-end">
-                          <Clock size={11} /> {timeSince(session.lastActiveAt)}
-                        </p>
-                        <p className="text-slate-400 text-xs">{session.messages.length} messages</p>
-                      </div>
-                      {isOpen ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
-                    </div>
-                  </button>
+        </div>
 
-                  {/* Expanded conversation */}
-                  <AnimatePresence>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="border-t border-slate-100 px-5 py-4 space-y-1 bg-slate-50">
-                          <div className="flex gap-6 text-xs text-slate-500 mb-3">
-                            <span>Started: {formatDate(session.startedAt)}</span>
-                            <span>Last active: {formatDate(session.lastActiveAt)}</span>
-                            <span>Channel: {session.channel}</span>
-                          </div>
-                          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                            {session.messages.map((msg, i) => (
-                              <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-white ${
-                                  msg.role === "bot" ? "bg-blue-500" : "bg-slate-500"
-                                }`}>
-                                  {msg.role === "bot" ? "AI" : session.userName[0].toUpperCase()}
-                                </div>
-                                <div className={`max-w-[75%] px-3 py-2 rounded-xl text-xs leading-relaxed ${
-                                  msg.role === "bot" ? "bg-white border border-slate-200 text-slate-700" : "bg-blue-600 text-white"
-                                } ${msg.status === "error" ? "border-red-300 bg-red-50 text-red-700" : ""}`}>
-                                  <p>{msg.text}</p>
-                                  <p className={`text-[10px] mt-1 ${msg.role === "bot" ? "text-slate-400" : "text-blue-200"}`}>
-                                    {formatDate(msg.timestamp)}{msg.status === "error" ? " · error" : ""}
-                                  </p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
+        {/* Contact Section */}
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">Contact Information</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+              <input
+                type="email"
+                value={content.contact?.email || ''}
+                onChange={(e) => setContent({ ...content, contact: { ...content.contact, email: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Phone</label>
+              <input
+                type="text"
+                value={content.contact?.phone || ''}
+                onChange={(e) => setContent({ ...content, contact: { ...content.contact, phone: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Address</label>
+              <input
+                type="text"
+                value={content.contact?.address || ''}
+                onChange={(e) => setContent({ ...content, contact: { ...content.contact, address: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Social Links */}
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">Social Links</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">GitHub</label>
+              <input
+                type="url"
+                value={content.social?.github || ''}
+                onChange={(e) => setContent({ ...content, social: { ...content.social, github: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">LinkedIn</label>
+              <input
+                type="url"
+                value={content.social?.linkedin || ''}
+                onChange={(e) => setContent({ ...content, social: { ...content.social, linkedin: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Twitter</label>
+              <input
+                type="url"
+                value={content.social?.twitter || ''}
+                onChange={(e) => setContent({ ...content, social: { ...content.social, twitter: e.target.value } })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={loading}
+          className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          <Save size={16} />
+          {loading ? 'Saving...' : 'Save Content'}
+        </button>
       </div>
-    </div>
+    </motion.div>
   );
 }

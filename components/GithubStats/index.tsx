@@ -53,9 +53,9 @@ function ContributionGraph() {
   );
 
   return (
-    <div className="glass-card rounded-2xl p-5">
+    <div className="glass-card rounded-2xl p-5 overflow-x-hidden">
       <h3 className="text-slate-900 font-semibold text-base mb-4 text-center">Contribution Activity</h3>
-      <div className="w-full overflow-x-auto">
+      <div className="w-full overflow-x-auto horizontal-scroll-container">
         <svg
           viewBox={`0 0 ${W} ${H}`}
           width="100%"
@@ -169,7 +169,7 @@ export default function GithubStats() {
   ] : null;
 
   return (
-    <section id="github" className="section-padding relative section-alt" ref={ref} aria-label="GitHub Statistics">
+    <section id="github" className="section-padding relative section-alt overflow-x-hidden" ref={ref} aria-label="GitHub Statistics">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 right-0 w-96 h-96 bg-blue-600/3 rounded-full blur-3xl" />
       </div>

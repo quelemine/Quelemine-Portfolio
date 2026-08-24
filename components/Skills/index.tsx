@@ -35,7 +35,7 @@ export default function Skills() {
   const info = activeTag ? tagInfo[activeTag] : null;
 
   return (
-    <section id="skills" className="section-padding relative" ref={ref}>
+    <section id="skills" className="section-padding relative overflow-x-hidden" ref={ref}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/3 rounded-full blur-3xl" />
       </div>

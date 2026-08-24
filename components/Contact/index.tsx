@@ -35,7 +35,7 @@ export default function Contact() {
   const inputClass = "w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-200";
 
   return (
-    <section id="contact" className="section-padding relative" ref={ref}>
+    <section id="contact" className="section-padding relative overflow-x-hidden" ref={ref}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-600/3 rounded-full blur-3xl" />
       </div>

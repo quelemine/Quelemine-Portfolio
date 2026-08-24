@@ -18,7 +18,7 @@ export default function WorkTogether() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section id="work-together" className="section-padding relative bg-[#0B1F3A]" ref={ref}>
+    <section id="work-together" className="section-padding relative bg-[#0B1F3A] overflow-x-hidden" ref={ref}>
       {/* Subtle glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(600px,100%)] h-[400px] bg-blue-600/8 rounded-full blur-3xl" />

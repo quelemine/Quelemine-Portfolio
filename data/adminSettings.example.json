@@ -1,0 +1,69 @@
+{
+  "profile": {
+    "name": "Your Name",
+    "title": "Your Title",
+    "subtitle": "Your Subtitle",
+    "description": "Your description",
+    "location": "Your Location",
+    "availableForWork": true,
+    "profileImage": "/images/profile/default.jpg"
+  },
+  "cv": {
+    "url": "/resume.pdf",
+    "filename": "resume.pdf",
+    "uploadDate": ""
+  },
+  "projects": [],
+  "education": [],
+  "colors": {
+    "primary": "#2563eb",
+    "secondary": "#0B1F3A",
+    "accent": "#3b82f6",
+    "background": "#ffffff",
+    "text": "#1e293b",
+    "cardBackground": "#ffffff"
+  },
+  "siteContent": {
+    "hero": {
+      "badge": "Your Badge",
+      "title": "Your",
+      "titleAccent": "Name",
+      "subtitle": "Your Subtitle",
+      "description": "Your description",
+      "viewProjects": "View Projects",
+      "downloadCV": "Download CV",
+      "contactMe": "Contact Me",
+      "availableForWork": "Available for Work"
+    },
+    "about": {
+      "sectionLabel": "Who I Am",
+      "sectionTitle": "About Me",
+      "bio1": "Your bio",
+      "bio2": "Your bio",
+      "bio3": "Your bio",
+      "bio4": "Your bio",
+      "tags": ["Tag1", "Tag2"],
+      "getInTouch": "Get In Touch",
+      "downloadCV": "Download CV",
+      "highlights": {
+        "international": { "label": "Label", "desc": "Description" },
+        "education": { "label": "Label", "desc": "Description" },
+        "stack": { "label": "Label", "desc": "Description" },
+        "location": { "label": "Label", "desc": "Description" }
+      }
+    },
+    "contact": {
+      "email": "your@email.com",
+      "phone": "",
+      "address": "Your Address"
+    },
+    "social": {
+      "github": "https://github.com/yourusername",
+      "linkedin": "",
+      "twitter": ""
+    }
+  },
+  "security": {
+    "password": ""
+  }
+}

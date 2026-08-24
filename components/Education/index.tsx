@@ -12,7 +12,7 @@ export default function Education() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section id="education" className="section-padding relative section-alt" ref={ref}>
+    <section id="education" className="section-padding relative section-alt overflow-x-hidden" ref={ref}>
       {/* Background accent */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 right-0 w-96 h-96 bg-blue-600/4 rounded-full blur-3xl" />

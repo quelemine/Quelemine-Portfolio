@@ -17,7 +17,7 @@ export default function Hero() {
         <div className="absolute bottom-1/4 right-1/4 w-[min(400px,70vw)] h-[min(400px,70vw)] bg-blue-800/6 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16 sm:pt-32 sm:pb-20 lg:pt-36 lg:pb-24">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16 sm:pt-32 sm:pb-20 lg:pt-36 lg:pb-24 overflow-x-hidden">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
           {/* ── Left: Text content ── */}

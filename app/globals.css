@@ -74,10 +74,35 @@ p, span, a, li, label, input, textarea, button {
 }
 
 /* ─── Scrollbar ──────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg-body); }
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* Mobile horizontal scrollbar support */
+@media (max-width: 768px) {
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Enable horizontal scrolling for specific containers */
+  .horizontal-scroll-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    -ms-overflow-style: -ms-autohiding-scrollbar;
+  }
+  
+  .horizontal-scroll-container::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .horizontal-scroll-container::-webkit-scrollbar-thumb {
+    background: rgba(37,99,235,0.3);
+    border-radius: 2px;
+  }
+}
 
 /* ─── Typography ─────────────────────────────────────────────── */
 .gradient-text {

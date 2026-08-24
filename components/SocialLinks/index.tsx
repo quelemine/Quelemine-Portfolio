@@ -13,7 +13,7 @@ export default function SocialLinks() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section id="social" className="section-padding relative" ref={ref}>
+    <section id="social" className="section-padding relative overflow-x-hidden" ref={ref}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
