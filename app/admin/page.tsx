@@ -684,8 +684,14 @@ function DashboardTab({ sessions }: { sessions: ChatSession[] }) {
   const errorCount = sessions.reduce((acc, s) => acc + s.messages.filter((m) => m.status === "error").length, 0);
 
   const handleClearCache = () => {
-    if (confirm('Are you sure you want to clear all cache? This will clear all localStorage data including chat logs. This action cannot be undone.')) {
+    if (confirm('Are you sure you want to clear all cache? This will clear all localStorage data except chat logs. This action cannot be undone.')) {
+      // Preserve chat logs before clearing
+      const chatLogs = localStorage.getItem('iq_chat_logs');
       localStorage.clear();
+      // Restore chat logs after clearing
+      if (chatLogs) {
+        localStorage.setItem('iq_chat_logs', chatLogs);
+      }
       window.location.reload();
     }
   };
