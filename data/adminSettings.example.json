@@ -64,6 +64,9 @@
     }
   },
   "security": {
-    "password": ""
+    "username": "admin",
+    "password": "",
+    "securityQuestion": "",
+    "securityAnswer": ""
   }
 }

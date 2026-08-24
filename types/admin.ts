@@ -9,6 +9,12 @@ export interface AdminSettings {
     availableForWork: boolean;
     profileImage: string;
   };
+  logo: {
+    url: string;
+  };
+  loginLogo: {
+    url: string;
+  };
   cv: {
     url: string;
     filename: string;
@@ -17,9 +23,13 @@ export interface AdminSettings {
   projects: Project[];
   education: Education[];
   colors: ColorTheme;
+  typography: TypographySettings;
   siteContent: SiteContent;
   security: {
+    username: string;
     password: string;
+    securityQuestion: string;
+    securityAnswer: string;
   };
 }
 
@@ -56,6 +66,27 @@ export interface ColorTheme {
   cardBackground: string;
 }
 
+export interface TypographySettings {
+  fontFamily: string;
+  fontSize: {
+    base: string;
+    h1: string;
+    h2: string;
+    h3: string;
+    small: string;
+  };
+  lineHeight: {
+    normal: string;
+    relaxed: string;
+  };
+  textAlign: "left" | "center" | "right";
+  fontWeight: {
+    normal: string;
+    medium: string;
+    bold: string;
+  };
+}
+
 export interface SiteContent {
   hero: {
     badge: string;
@@ -78,6 +109,7 @@ export interface SiteContent {
     tags: string[];
     getInTouch: string;
     downloadCV: string;
+    image: string;
     highlights: {
       international: { label: string; desc: string };
       education: { label: string; desc: string };

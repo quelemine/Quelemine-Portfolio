@@ -1,14 +1,29 @@
 "use client";
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { MapPin, GraduationCap, Code2, Globe } from "lucide-react";
-import ProfileImage from "@/components/UI/ProfileImage";
+import Image from "next/image";
 import { useTranslation } from "@/context/LanguageContext";
 
 export default function About() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const { t } = useTranslation();
+  const [aboutImage, setAboutImage] = useState("/images/profile/isaac-profile.jpg");
+
+  useEffect(() => {
+    // Fetch about image from settings
+    fetch('/api/admin/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.siteContent?.about?.image) {
+          setAboutImage(data.siteContent.about.image);
+        } else if (data.profile?.profileImage) {
+          setAboutImage(data.profile.profileImage);
+        }
+      })
+      .catch(err => console.error('Failed to fetch about image:', err));
+  }, []);
 
   const highlights = [
     { icon: Globe,          ...t.about.highlights.international },
@@ -43,7 +58,7 @@ export default function About() {
           >
             {/* Profile photo */}
             <div className="relative w-52 h-60 rounded-2xl overflow-hidden ring-1 ring-blue-500/25 profile-glow flex-shrink-0">
-              <ProfileImage size={240} />
+              <Image src={aboutImage} alt="About" fill className="object-cover object-top" />
             </div>
 
             {/* Quick facts */}

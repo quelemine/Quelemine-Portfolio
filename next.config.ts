@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [],
   },
   devIndicators: false,
+  allowedDevOrigins: ['127.0.0.1'],
   async headers() {
     return [
       {

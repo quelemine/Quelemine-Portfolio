@@ -13,13 +13,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    if (!type || !['profile', 'cv'].includes(type)) {
+    if (!type || !['profile', 'cv', 'about', 'logo', 'loginLogo'].includes(type)) {
       return NextResponse.json({ error: 'Invalid upload type' }, { status: 400 });
     }
 
     // Validate file type
-    if (type === 'profile' && !file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Profile image must be an image file' }, { status: 400 });
+    if ((type === 'profile' || type === 'about' || type === 'logo' || type === 'loginLogo') && !file.type.startsWith('image/')) {
+      return NextResponse.json({ error: 'Image must be an image file' }, { status: 400 });
     }
 
     if (type === 'cv' && file.type !== 'application/pdf') {

@@ -13,15 +13,29 @@ async function readSettings(): Promise<AdminSettings> {
   } catch (error) {
     return {
       profile: {
-        name: "", title: "", subtitle: "", description: "",
-        location: "", availableForWork: true, profileImage: ""
+        name: "",
+        title: "",
+        subtitle: "",
+        description: "",
+        location: "",
+        availableForWork: true,
+        profileImage: ""
       },
+      logo: { url: "" },
+      loginLogo: { url: "" },
       cv: { url: "", filename: "", uploadDate: "" },
       projects: [],
       education: [],
       colors: {
-        primary: "#2563eb", secondary: "#0B1F3A", accent: "#3b82f6",
-        background: "#ffffff", text: "#1e293b", cardBackground: "#ffffff"
+        primary: "", secondary: "", accent: "",
+        background: "", text: "", cardBackground: ""
+      },
+      typography: {
+        fontFamily: "",
+        fontSize: { base: "", h1: "", h2: "", h3: "", small: "" },
+        lineHeight: { normal: "", relaxed: "" },
+        textAlign: "left",
+        fontWeight: { normal: "", medium: "", bold: "" }
       },
       siteContent: {
         hero: {
@@ -32,7 +46,7 @@ async function readSettings(): Promise<AdminSettings> {
         about: {
           sectionLabel: "", sectionTitle: "",
           bio1: "", bio2: "", bio3: "", bio4: "",
-          tags: [], getInTouch: "", downloadCV: "",
+          tags: [], getInTouch: "", downloadCV: "", image: "",
           highlights: {
             international: { label: "", desc: "" },
             education: { label: "", desc: "" },
@@ -43,7 +57,7 @@ async function readSettings(): Promise<AdminSettings> {
         contact: { email: "", phone: "", address: "" },
         social: { github: "", linkedin: "", twitter: "" }
       },
-      security: { password: "" }
+      security: { username: "admin", password: "", securityQuestion: "", securityAnswer: "" }
     };
   }
 }

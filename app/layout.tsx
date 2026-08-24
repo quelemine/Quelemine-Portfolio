@@ -4,6 +4,7 @@ import "./globals.css";
 import { IMAGES, PROFILE_ALT } from "@/lib/images";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { ChatProvider } from "@/context/ChatContext";
+import TypographyProvider from "@/components/TypographyProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -66,7 +67,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${inter.variable} ${manrope.variable} antialiased`}>
-        <LanguageProvider><ChatProvider>{children}</ChatProvider></LanguageProvider>
+        <TypographyProvider>
+          <LanguageProvider><ChatProvider>{children}</ChatProvider></LanguageProvider>
+        </TypographyProvider>
       </body>
     </html>
   );

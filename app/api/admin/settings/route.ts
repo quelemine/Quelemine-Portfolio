@@ -22,9 +22,11 @@ async function readSettings(): Promise<AdminSettings> {
         availableForWork: true,
         profileImage: "/images/profile/isaac-profile.jpg"
       },
+      logo: { url: "" },
+      loginLogo: { url: "" },
       cv: {
-        url: "/resume.pdf",
-        filename: "resume.pdf",
+        url: "",
+        filename: "",
         uploadDate: ""
       },
       projects: [],
@@ -36,6 +38,26 @@ async function readSettings(): Promise<AdminSettings> {
         background: "#ffffff",
         text: "#1e293b",
         cardBackground: "#ffffff"
+      },
+      typography: {
+        fontFamily: "Inter, sans-serif",
+        fontSize: {
+          base: "16px",
+          h1: "48px",
+          h2: "36px",
+          h3: "24px",
+          small: "14px"
+        },
+        lineHeight: {
+          normal: "1.5",
+          relaxed: "1.75"
+        },
+        textAlign: "left",
+        fontWeight: {
+          normal: "400",
+          medium: "500",
+          bold: "700"
+        }
       },
       siteContent: {
         hero: {
@@ -59,6 +81,7 @@ async function readSettings(): Promise<AdminSettings> {
           tags: ["Full Stack Development", "Software Engineering"],
           getInTouch: "Get In Touch",
           downloadCV: "Download CV",
+          image: "",
           highlights: {
             international: { label: "International Background", desc: "Liberia · Northern Cyprus · Rwanda" },
             education: { label: "Multi-Institution Student", desc: "UNILAK · BYU Pathway · Rauf Denktas" },
@@ -78,7 +101,10 @@ async function readSettings(): Promise<AdminSettings> {
         }
       },
       security: {
-        password: ""
+        username: "admin",
+        password: "",
+        securityQuestion: "",
+        securityAnswer: ""
       }
     };
   }
@@ -107,13 +133,11 @@ export async function PUT(request: Request) {
     const updates = await request.json();
     const currentSettings = await readSettings();
     
-    // Merge updates with current settings
-    const updatedSettings = {
-      ...currentSettings,
-      ...updates,
-      // Preserve security separately
-      security: currentSettings.security
-    };
+    // Deep merge updates with current settings
+    const updatedSettings = deepMerge(currentSettings, updates);
+    
+    // Preserve security separately
+    updatedSettings.security = currentSettings.security;
     
     await writeSettings(updatedSettings);
     
@@ -123,4 +147,29 @@ export async function PUT(request: Request) {
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
   }
+}
+
+// Helper function for deep merging
+function deepMerge(target: any, source: any): any {
+  const output = { ...target };
+  
+  if (isObject(target) && isObject(source)) {
+    Object.keys(source).forEach(key => {
+      if (isObject(source[key])) {
+        if (!(key in target)) {
+          Object.assign(output, { [key]: source[key] });
+        } else {
+          output[key] = deepMerge(target[key], source[key]);
+        }
+      } else {
+        Object.assign(output, { [key]: source[key] });
+      }
+    });
+  }
+  
+  return output;
+}
+
+function isObject(item: any): boolean {
+  return item && typeof item === 'object' && !Array.isArray(item);
 }

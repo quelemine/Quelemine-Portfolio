@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Minus, Send, MessageCircle, ArrowRight } from "lucide-react";
+import { Minus, Send, MessageCircle, ArrowRight, X } from "lucide-react";
 import Image from "next/image";
 import { IMAGES } from "@/lib/images";
 import { FaWhatsapp } from "react-icons/fa6";
@@ -22,8 +22,12 @@ const CHAT_W  = 384; // ~w-96 on desktop
 const CHAT_H  = 600;
 const HANDLE_H = 10;
 const MOBILE_BP = 640; // px — below this, render as bottom sheet (no drag)
+const MIN_W = 320;
+const MIN_H = 400;
+const MAX_W = 600;
+const MAX_H = 800;
 
-function getBotReply(input: string, name: string): { text: string; whatsappMsg?: string } {
+function getBotReply(input: string, name: string): { text: string; whatsappMsg?: string; showResumeButton?: boolean } {
   const q = input.toLowerCase().trim();
 
   if (/who is isaac|tell me about isaac|about isaac|introduce|isaac quelemine|quelemine/.test(q))
@@ -91,6 +95,12 @@ function getBotReply(input: string, name: string): { text: string; whatsappMsg?:
       whatsappMsg: `Hi Isaac! I'm ${name}. I saw you're available for work and I'd like to discuss an opportunity.`,
     };
 
+  if (/resume|cv|download.*resume|see.*cv|send.*resume|get.*resume|want.*cv/.test(q))
+    return {
+      text: `Of course, ${name}! You can download Isaac's resume directly using the button below. It contains his full work experience, skills, and education. 📄`,
+      showResumeButton: true,
+    };
+
   if (/no[!\s]*thanks|no[!\s]*thank you|nothing|no more|that'?s all|that is all|i'?m good|i am good|bye|goodbye|see you|take care|farewell/.test(q))
     return {
       text: `Thanks for chatting, ${name}! Have a wonderful day! 😊👋`,
@@ -123,9 +133,6 @@ function UserAvatar({ name, size = 28 }: { name: string; size?: number }) {
 const SUGGESTED_QUESTIONS = [
   "Who is Isaac?",
   "What technical skills does Isaac have?",
-  "What projects has Isaac built?",
-  "Tell me about the SICM Church Management System.",
-  "What services does Isaac offer?",
   "How can I contact Isaac?",
 ];
 
@@ -155,17 +162,25 @@ export default function WhatsAppAgent() {
   const [messages,   setMessages]   = useState<Message[]>([]);
   const [input,      setInput]      = useState("");
   const [typing,     setTyping]     = useState(false);
+  const [typingStatus, setTypingStatus] = useState("AI Assistant is thinking...");
   const [lastWhatsappMsg, setLastWhatsappMsg] = useState("");
+  const [showResumeButton, setShowResumeButton] = useState(false);
   const [sessionId,  setSessionId]  = useState("");
 
   // Drag state — null means "use default bottom-right anchor via CSS"
   const [pos,      setPos]      = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
 
+  // Resize state
+  const [chatWidth,  setChatWidth]  = useState(CHAT_W);
+  const [chatHeight, setChatHeight] = useState(CHAT_H);
+  const [resizing,   setResizing]   = useState(false);
+
   const bottomRef  = useRef<HTMLDivElement>(null);
   const chatRef    = useRef<HTMLDivElement>(null);
   const dragOrigin = useRef<{ mx: number; my: number; bx: number; by: number } | null>(null);
   const didDrag    = useRef(false);
+  const resizeOrigin = useRef<{ mx: number; my: number; w: number; h: number } | null>(null);
 
   const { pendingMessage, clearPending } = useChatContext();
 
@@ -182,19 +197,30 @@ export default function WhatsAppAgent() {
     setMessages((prev) => [...prev, { id: performance.now(), role: "user", text }]);
     logMessage(sid, "user", text);
     setTyping(true);
+    setTypingStatus("AI Assistant is thinking...");
+    
+    setTimeout(() => {
+      setTypingStatus("Analyzing your request...");
+    }, 300);
+    
+    setTimeout(() => {
+      setTypingStatus("Preparing your answer...");
+    }, 600);
+    
     setTimeout(() => {
       try {
         const reply = getBotReply(text, name);
         setMessages((prev) => [...prev, { id: performance.now() + 1, role: "bot", text: reply.text }]);
         logMessage(sid, "bot", reply.text, "success");
         if (reply.whatsappMsg) setLastWhatsappMsg(reply.whatsappMsg);
+        if (reply.showResumeButton) setShowResumeButton(true);
       } catch {
         const errText = "Sorry, something went wrong. Please try again.";
         setMessages((prev) => [...prev, { id: performance.now() + 1, role: "bot", text: errText }]);
         logMessage(sid, "bot", errText, "error");
       }
       setTyping(false);
-    }, 900);
+    }, 1200);
   }, []);
 
   const sendMessage = useCallback((text: string) => {
@@ -262,6 +288,36 @@ export default function WhatsAppAgent() {
     setDragging(false);
   }, []);
 
+  /* ── Resize handlers ── */
+  const startResize = useCallback((e: React.PointerEvent<HTMLElement>) => {
+    if (mobile) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    resizeOrigin.current = {
+      mx: e.clientX,
+      my: e.clientY,
+      w: chatWidth,
+      h: chatHeight,
+    };
+    setResizing(true);
+  }, [mobile, chatWidth, chatHeight]);
+
+  const onResizeMove = useCallback((e: React.PointerEvent<HTMLElement>) => {
+    if (mobile || !resizeOrigin.current) return;
+    const dx = e.clientX - resizeOrigin.current.mx;
+    const dy = e.clientY - resizeOrigin.current.my;
+    
+    const newWidth = Math.max(MIN_W, Math.min(MAX_W, resizeOrigin.current.w + dx));
+    const newHeight = Math.max(MIN_H, Math.min(MAX_H, resizeOrigin.current.h + dy));
+    
+    setChatWidth(newWidth);
+    setChatHeight(newHeight);
+  }, [mobile]);
+
+  const onResizeUp = useCallback(() => {
+    resizeOrigin.current = null;
+    setResizing(false);
+  }, []);
+
   /* ── Open / minimize helpers ── */
   const openChat = () => { setOpen(true); setMinimized(false); };
   const minimize = () => setMinimized(true);
@@ -274,7 +330,7 @@ export default function WhatsAppAgent() {
     const sid = createSession(name);
     setSessionId(sid);
     setUserName(name);
-    const greeting = `Hi ${name}! 👋 I'm Isaac's AI assistant. I can answer questions about his skills, experience, and projects — or connect you with him directly on WhatsApp. How can I help you today?`;
+    const greeting = `Hello ${name}! 👋 I'm Quelemine AI Assistant. I can help answer questions about the website, services, projects, and provide useful information. How can I assist you today?`;
     setMessages([{ id: performance.now(), role: "bot", text: greeting }]);
     logMessage(sid, "bot", greeting);
     if (pendingMessage) {
@@ -289,8 +345,8 @@ export default function WhatsAppAgent() {
   const posStyle: React.CSSProperties = mobile
     ? { left: 0, right: 0, bottom: 0, top: "auto", width: "100%", borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
     : pos
-      ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto" }
-      : { right: 24, bottom: 96 };
+      ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto", width: chatWidth }
+      : { right: 24, bottom: 96, width: chatWidth };
 
   return (
     <>
@@ -337,8 +393,8 @@ export default function WhatsAppAgent() {
             transition={{ duration: 0.22, ease: "easeOut" }}
             style={{
               ...posStyle,
-              ...(mobile ? {} : { width: `min(${CHAT_W}px, calc(100vw - 16px))` }),
-              maxHeight: minimized ? "auto" : mobile ? "92dvh" : `min(${CHAT_H}px, calc(100vh - 32px))`,
+              ...(mobile ? {} : { width: `${chatWidth}px` }),
+              maxHeight: minimized ? "auto" : mobile ? "92dvh" : `${chatHeight}px`,
             }}
             className="fixed z-50 flex flex-col rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10"
             aria-label="AI Assistant chat window"
@@ -381,6 +437,13 @@ export default function WhatsAppAgent() {
                   aria-label="Minimize chat"
                 >
                   <Minus size={16} />
+                </button>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="text-white/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+                  aria-label="Close chat"
+                >
+                  <X size={16} />
                 </button>
               </div>
             </div>
@@ -434,7 +497,13 @@ export default function WhatsAppAgent() {
                       style={{ maxHeight: mobile ? "calc(92dvh - 280px)" : "calc(100vh - 320px)", minHeight: 160 }}
                     >
                       {messages.map((msg) => (
-                        <div key={msg.id} className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                        <motion.div
+                          key={msg.id}
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ duration: 0.3 }}
+                          className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+                        >
                           {msg.role === "bot" ? (
                             <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
                               <Image src={IMAGES.profile} alt="Isaac" width={28} height={28} className="object-cover object-top w-full h-full" />
@@ -449,7 +518,7 @@ export default function WhatsAppAgent() {
                           }`}>
                             {msg.text}
                           </div>
-                        </div>
+                        </motion.div>
                       ))}
 
                       {typing && (
@@ -457,11 +526,14 @@ export default function WhatsAppAgent() {
                           <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
                             <Image src={IMAGES.profile} alt="Isaac" width={28} height={28} className="object-cover object-top w-full h-full" />
                           </div>
-                          <div className="bg-slate-800 px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1">
-                            {[0, 1, 2].map((i) => (
-                              <motion.span key={i} className="w-1.5 h-1.5 bg-slate-400 rounded-full"
-                                animate={{ y: [0, -4, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }} />
-                            ))}
+                          <div className="bg-slate-800 px-4 py-3 rounded-2xl rounded-bl-sm">
+                            <div className="flex items-center gap-2">
+                              {[0, 1, 2].map((i) => (
+                                <motion.span key={i} className="w-1.5 h-1.5 bg-slate-400 rounded-full"
+                                  animate={{ y: [0, -4, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }} />
+                              ))}
+                              <span className="text-slate-400 text-xs ml-2">{typingStatus}</span>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -472,23 +544,33 @@ export default function WhatsAppAgent() {
                     <div className="bg-slate-900 px-3 py-2 flex-shrink-0 border-t border-white/5">
                       <p className="text-slate-500 text-[10px] uppercase tracking-widest mb-2 px-1">Suggested</p>
                       <div className={mobile ? "flex gap-2 overflow-x-auto pb-1 scrollbar-none" : "flex flex-col gap-1"}>
-                        {SUGGESTED_QUESTIONS.map((q) => (
-                          <button
+                        {SUGGESTED_QUESTIONS.map((q, index) => (
+                          <motion.button
                             key={q}
                             onClick={() => sendMessage(q)}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             className={`text-left px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors ${
                               mobile ? "whitespace-nowrap flex-shrink-0" : ""
                             }`}
                           >
                             {q}
-                          </button>
+                          </motion.button>
                         ))}
                       </div>
                     </div>
 
                     {/* WhatsApp buttons */}
                     {lastWhatsappMsg && (
-                      <div className="bg-slate-900 px-3 pb-2 flex gap-2 flex-shrink-0">
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="bg-slate-900 px-3 pb-2 flex gap-2 flex-shrink-0"
+                      >
                         <button onClick={() => openWhatsApp(WA_PRIMARY, lastWhatsappMsg)}
                           className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-xs font-medium transition-colors">
                           <FaWhatsapp size={14} /> WhatsApp (Liberia)
@@ -497,7 +579,25 @@ export default function WhatsAppAgent() {
                           className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-700 hover:bg-green-600 text-white text-xs font-medium transition-colors">
                           <FaWhatsapp size={14} /> WhatsApp (TR)
                         </button>
-                      </div>
+                      </motion.div>
+                    )}
+
+                    {/* Resume download button */}
+                    {showResumeButton && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="bg-slate-900 px-3 pb-2 flex-shrink-0"
+                      >
+                        <a
+                          href="/resume.pdf"
+                          download="Isaac_Quelemine_Resume.pdf"
+                          className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors w-full"
+                        >
+                          <ArrowRight size={14} /> Download Resume
+                        </a>
+                      </motion.div>
                     )}
 
                     {/* Input */}
@@ -534,6 +634,20 @@ export default function WhatsAppAgent() {
                 aria-label="Drag to move chat window"
               >
                 <div className="w-8 h-1 rounded-full bg-slate-600" />
+              </div>
+            )}
+
+            {/* ── Resize handle — desktop only ── */}
+            {!mobile && !minimized && (
+              <div
+                className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-10"
+                onPointerDown={startResize}
+                onPointerMove={onResizeMove}
+                onPointerUp={onResizeUp}
+                onPointerCancel={onResizeUp}
+                aria-label="Resize chat window"
+              >
+                <div className="absolute bottom-1 right-1 w-2 h-2 border-r-2 border-b-2 border-slate-500 rounded-br" />
               </div>
             )}
           </motion.div>

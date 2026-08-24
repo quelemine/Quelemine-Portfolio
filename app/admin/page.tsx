@@ -4,20 +4,34 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   LogOut, MessageSquare, User, Settings, Upload, Lock, 
   FolderOpen, GraduationCap, Palette, FileText, Save, Plus,
-  Edit2, Trash2, X, Check, ChevronDown, ChevronUp, Image as ImageIcon
+  Edit2, Trash2, X, Check, ChevronDown, ChevronUp, Image as ImageIcon,
+  Eye, EyeOff
 } from "lucide-react";
 import { getAllSessions, type ChatSession } from "@/lib/chatLogger";
 import type { AdminSettings, Project, Education } from "@/types/admin";
 
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "";
 
-type TabType = 'dashboard' | 'profile' | 'cv' | 'password' | 'projects' | 'education' | 'colors' | 'content';
+type TabType = 'dashboard' | 'profile' | 'cv' | 'password' | 'projects' | 'education' | 'colors' | 'content' | 'logo' | 'typography';
 
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState(false);
+  const [usernameInput, setUsernameInput] = useState("");
   const [pwInput, setPwInput] = useState("");
   const [pwError, setPwError] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetStep, setResetStep] = useState<'email' | 'security' | 'new'>('email');
+  const [resetUsername, setResetUsername] = useState("");
+  const [resetSecurityAnswer, setResetSecurityAnswer] = useState("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [resetSecurityQuestion, setResetSecurityQuestion] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showResetConfirmPassword, setShowResetConfirmPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [loginLogo, setLoginLogo] = useState("");
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [loading, setLoading] = useState(false);
@@ -27,9 +41,20 @@ export default function AdminDashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Fetch login logo on component mount (before authentication)
+    fetch('/api/admin/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.loginLogo?.url) {
+          setLoginLogo(data.loginLogo.url);
+        }
+      })
+      .catch(err => console.error('Failed to fetch login logo:', err));
+  }, []);
+
+  useEffect(() => {
     if (!authed) return;
     loadSettings();
-    setTimeout(() => setSessions(getAllSessions()), 0);
   }, [authed]);
 
   const loadSettings = async () => {
@@ -38,20 +63,111 @@ export default function AdminDashboard() {
       if (response.ok) {
         const data = await response.json();
         setSettings(data);
+        // Update login logo when settings are loaded
+        if (data.loginLogo?.url) {
+          setLoginLogo(data.loginLogo.url);
+        }
       }
     } catch (error) {
       showNotification('error', 'Failed to load settings');
     }
   };
 
-  const login = (e: React.FormEvent) => {
+  const login = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pwInput === ADMIN_PASSWORD) { 
-      setAuthed(true); 
-      setPwError(false); 
-    } else { 
-      setPwError(true); 
-      setPwInput(""); 
+    try {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: usernameInput, password: pwInput })
+      });
+
+      if (response.ok) {
+        setAuthed(true);
+        setPwError(false);
+      } else {
+        setPwError(true);
+        setPwInput("");
+      }
+    } catch (error) {
+      setPwError(true);
+      setPwInput("");
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError("");
+    
+    if (resetStep === 'email') {
+      // Get security question
+      try {
+        const response = await fetch(`/api/admin/reset-password?username=${resetUsername}`);
+        if (response.ok) {
+          const data = await response.json();
+          setResetSecurityQuestion(data.securityQuestion);
+          setResetStep('security');
+        } else {
+          setResetError('Username not found');
+        }
+      } catch (error) {
+        setResetError('Failed to verify username');
+      }
+    } else if (resetStep === 'security') {
+      // Verify security answer
+      try {
+        const response = await fetch('/api/admin/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: resetUsername, securityAnswer: resetSecurityAnswer, newPassword: '' })
+        });
+
+        if (response.ok) {
+          setResetStep('new');
+        } else {
+          const data = await response.json();
+          setResetError(data.error || 'Incorrect security answer');
+        }
+      } catch (error) {
+        setResetError('Failed to verify security answer');
+      }
+    } else if (resetStep === 'new') {
+      // Set new password
+      if (resetNewPassword !== resetConfirmPassword) {
+        setResetError('Passwords do not match');
+        return;
+      }
+      if (resetNewPassword.length < 6) {
+        setResetError('Password must be at least 6 characters');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: resetUsername, securityAnswer: resetSecurityAnswer, newPassword: resetNewPassword })
+        });
+
+        if (response.ok) {
+          setResetMessage('Password reset successfully! You can now login with your new password.');
+          setTimeout(() => {
+            setShowForgotPassword(false);
+            setResetStep('email');
+            setResetUsername("");
+            setResetSecurityAnswer("");
+            setResetNewPassword("");
+            setResetConfirmPassword("");
+            setResetSecurityQuestion("");
+            setResetMessage("");
+            setResetError("");
+          }, 3000);
+        } else {
+          setResetError('Failed to reset password');
+        }
+      } catch (error) {
+        setResetError('Failed to reset password');
+      }
     }
   };
 
@@ -83,7 +199,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleFileUpload = async (file: File, type: 'profile' | 'cv') => {
+  const handleFileUpload = async (file: File, type: 'profile' | 'cv' | 'about' | 'logo' | 'loginLogo') => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', type);
@@ -98,9 +214,17 @@ export default function AdminDashboard() {
         const data = await response.json();
         if (type === 'profile') {
           await handleSaveSettings({ profile: { ...settings!.profile, profileImage: data.url } });
-        } else {
+        } else if (type === 'cv') {
           await handleSaveSettings({ cv: { ...settings!.cv, url: data.url, filename: data.filename, uploadDate: new Date().toISOString() } });
+        } else if (type === 'about') {
+          await handleSaveSettings({ siteContent: { ...settings!.siteContent, about: { ...settings!.siteContent.about, image: data.url } } });
+        } else if (type === 'logo') {
+          await handleSaveSettings({ logo: { ...settings!.logo, url: data.url } });
+        } else if (type === 'loginLogo') {
+          await handleSaveSettings({ loginLogo: { ...settings!.loginLogo, url: data.url } });
         }
+        // Reload settings to get the updated data
+        await loadSettings();
         showNotification('success', 'File uploaded successfully');
       } else {
         showNotification('error', 'Failed to upload file');
@@ -110,21 +234,21 @@ export default function AdminDashboard() {
     }
   };
 
-  const handlePasswordChange = async (currentPassword: string, newPassword: string) => {
+  const handlePasswordChange = async (currentPassword: string, newPassword: string, newUsername: string, securityQuestion: string, securityAnswer: string) => {
     try {
       const response = await fetch('/api/admin/password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword })
+        body: JSON.stringify({ currentPassword, newPassword, newUsername, securityQuestion, securityAnswer })
       });
 
       if (response.ok) {
-        showNotification('success', 'Password changed successfully');
+        showNotification('success', 'Credentials updated successfully');
       } else {
-        showNotification('error', 'Failed to change password');
+        showNotification('error', 'Failed to update credentials');
       }
     } catch (error) {
-      showNotification('error', 'Failed to change password');
+      showNotification('error', 'Failed to update credentials');
     }
   };
 
@@ -217,26 +341,151 @@ export default function AdminDashboard() {
           className="w-full max-w-sm bg-[#0f2847] border border-white/10 rounded-2xl p-8 shadow-2xl"
         >
           <div className="text-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center mx-auto mb-4">
-              <Settings size={26} className="text-blue-400" />
-            </div>
+            {loginLogo ? (
+              <img src={loginLogo} alt="Login Logo" className="w-20 h-20 mx-auto mb-4 object-cover rounded-full" />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center mx-auto mb-4">
+                <Settings size={26} className="text-blue-400" />
+              </div>
+            )}
             <h1 className="text-white font-bold text-xl">Admin Panel</h1>
-            <p className="text-slate-400 text-sm mt-1">Manage your website</p>
+            <p className="text-slate-400 text-sm mt-1">Quelemine's website</p>
           </div>
-          <form onSubmit={login} className="space-y-4">
-            <input
-              type="password"
-              value={pwInput}
-              onChange={(e) => setPwInput(e.target.value)}
-              placeholder="Enter admin password"
-              autoFocus
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-colors"
-            />
-            {pwError && <p className="text-red-400 text-xs">Incorrect password.</p>}
-            <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
-              Sign In
-            </button>
-          </form>
+          
+          {!showForgotPassword ? (
+            <form onSubmit={login} className="space-y-4">
+              <input
+                type="text"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                placeholder="Username"
+                autoFocus
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-colors"
+              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={pwInput}
+                  onChange={(e) => setPwInput(e.target.value)}
+                  placeholder="Password"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-colors pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {pwError && <p className="text-red-400 text-xs">Invalid username or password.</p>}
+              <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="w-full py-2 text-slate-400 hover:text-blue-400 text-xs transition-colors"
+              >
+                Forgot password?
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              {resetStep === 'email' && (
+                <>
+                  <input
+                    type="text"
+                    value={resetUsername}
+                    onChange={(e) => setResetUsername(e.target.value)}
+                    placeholder="Enter your username"
+                    autoFocus
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-colors"
+                  />
+                  {resetError && <p className="text-red-400 text-xs">{resetError}</p>}
+                  <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
+                    Continue
+                  </button>
+                </>
+              )}
+              {resetStep === 'security' && (
+                <>
+                  <p className="text-slate-300 text-sm">Security Question: {resetSecurityQuestion}</p>
+                  <input
+                    type="text"
+                    value={resetSecurityAnswer}
+                    onChange={(e) => setResetSecurityAnswer(e.target.value)}
+                    placeholder="Enter your answer"
+                    autoFocus
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-colors"
+                  />
+                  {resetError && <p className="text-red-400 text-xs">{resetError}</p>}
+                  <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
+                    Verify Answer
+                  </button>
+                </>
+              )}
+              {resetStep === 'new' && (
+                <>
+                  <div className="relative">
+                    <input
+                      type={showResetPassword ? "text" : "password"}
+                      value={resetNewPassword}
+                      onChange={(e) => setResetNewPassword(e.target.value)}
+                      placeholder="New password"
+                      autoFocus
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-colors pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetPassword(!showResetPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    >
+                      {showResetPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showResetConfirmPassword ? "text" : "password"}
+                      value={resetConfirmPassword}
+                      onChange={(e) => setResetConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-colors pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetConfirmPassword(!showResetConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    >
+                      {showResetConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {resetError && <p className="text-red-400 text-xs">{resetError}</p>}
+                  {resetMessage && <p className="text-green-400 text-xs">{resetMessage}</p>}
+                  <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
+                    Reset Password
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setResetStep('email');
+                  setResetUsername("");
+                  setResetSecurityAnswer("");
+                  setResetNewPassword("");
+                  setResetConfirmPassword("");
+                  setResetSecurityQuestion("");
+                  setResetMessage("");
+                  setResetError("");
+                }}
+                className="w-full py-2 text-slate-400 hover:text-blue-400 text-xs transition-colors"
+              >
+                Back to login
+              </button>
+            </form>
+          )}
         </motion.div>
       </div>
     );
@@ -246,10 +495,12 @@ export default function AdminDashboard() {
     { id: 'dashboard' as TabType, label: 'Dashboard', icon: MessageSquare },
     { id: 'profile' as TabType, label: 'Profile', icon: User },
     { id: 'cv' as TabType, label: 'CV', icon: FileText },
+    { id: 'logo' as TabType, label: 'Logo', icon: ImageIcon },
     { id: 'password' as TabType, label: 'Password', icon: Lock },
     { id: 'projects' as TabType, label: 'Projects', icon: FolderOpen },
     { id: 'education' as TabType, label: 'Education', icon: GraduationCap },
     { id: 'colors' as TabType, label: 'Colors', icon: Palette },
+    { id: 'typography' as TabType, label: 'Typography', icon: Settings },
     { id: 'content' as TabType, label: 'Content', icon: Settings },
   ];
 
@@ -259,7 +510,7 @@ export default function AdminDashboard() {
       <div className="bg-[#0B1F3A] px-4 sm:px-6 py-4 flex items-center justify-between overflow-x-hidden">
         <div className="min-w-0">
           <h1 className="text-white font-bold text-lg truncate">Admin Panel</h1>
-          <p className="text-slate-400 text-xs truncate">Isaac&apos;s Website · Admin View</p>
+          <p className="text-slate-400 text-xs truncate">Quelemine Website · Admin View</p>
         </div>
         <button onClick={() => setAuthed(false)} className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors flex-shrink-0">
           <LogOut size={15} /> Sign out
@@ -311,8 +562,21 @@ export default function AdminDashboard() {
                 loading={loading}
               />
             )}
+            {activeTab === 'logo' && (
+              <LogoTab 
+                key="logo" 
+                settings={settings} 
+                onFileUpload={handleFileUpload}
+                onSave={handleSaveSettings}
+                loading={loading}
+              />
+            )}
             {activeTab === 'password' && (
-              <PasswordTab key="password" onChangePassword={handlePasswordChange} />
+              <PasswordTab 
+                key="password" 
+                onChangePassword={handlePasswordChange}
+                settings={settings}
+              />
             )}
             {activeTab === 'projects' && (
               <ProjectsTab 
@@ -342,11 +606,20 @@ export default function AdminDashboard() {
                 loading={loading}
               />
             )}
+            {activeTab === 'typography' && (
+              <TypographyTab 
+                key="typography" 
+                settings={settings} 
+                onSave={handleSaveSettings}
+                loading={loading}
+              />
+            )}
             {activeTab === 'content' && (
               <ContentTab 
                 key="content" 
                 settings={settings} 
                 onSave={handleSaveSettings}
+                onFileUpload={handleFileUpload}
                 loading={loading}
               />
             )}
@@ -433,10 +706,14 @@ function DashboardTab({ sessions }: { sessions: ChatSession[] }) {
 // Profile Tab
 function ProfileTab({ settings, onFileUpload, onSave, loading }: any) {
   const [profileData, setProfileData] = useState(settings?.profile || {});
+  const [aboutImageData, setAboutImageData] = useState(settings?.siteContent?.about?.image || '');
 
   useEffect(() => {
     if (settings?.profile) {
       setProfileData(settings.profile);
+    }
+    if (settings?.siteContent?.about?.image) {
+      setAboutImageData(settings.siteContent.about.image);
     }
   }, [settings]);
 
@@ -447,8 +724,31 @@ function ProfileTab({ settings, onFileUpload, onSave, loading }: any) {
     }
   };
 
+  const handleAboutImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onFileUpload(file, 'about');
+    }
+  };
+
+  // Update aboutImageData when settings change (after upload)
+  useEffect(() => {
+    if (settings?.siteContent?.about?.image) {
+      setAboutImageData(settings.siteContent.about.image);
+    }
+  }, [settings]);
+
   const handleSave = () => {
-    onSave({ profile: profileData });
+    onSave({ 
+      profile: profileData,
+      siteContent: { 
+        ...settings?.siteContent, 
+        about: { 
+          ...settings?.siteContent?.about, 
+          image: aboutImageData 
+        } 
+      } 
+    });
   };
 
   if (!settings) return <div className="text-slate-500">Loading...</div>;
@@ -463,13 +763,13 @@ function ProfileTab({ settings, onFileUpload, onSave, loading }: any) {
       <h2 className="text-2xl font-bold text-slate-900">Profile Settings</h2>
       
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6 overflow-x-hidden">
-        {/* Profile Image */}
+        {/* Home Profile Image */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-3">Profile Image</label>
+          <label className="block text-sm font-medium text-slate-700 mb-3">Home Profile Image (Hero Section)</label>
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="w-24 h-24 rounded-full overflow-hidden bg-slate-100 border-2 border-slate-200 flex-shrink-0">
               {profileData.profileImage ? (
-                <img src={profileData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                <img src={profileData.profileImage} alt="Home Profile" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <ImageIcon size={32} className="text-slate-400" />
@@ -489,7 +789,40 @@ function ProfileTab({ settings, onFileUpload, onSave, loading }: any) {
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 cursor-pointer transition-colors"
               >
                 <Upload size={16} />
-                Upload Image
+                Upload Home Profile Image
+              </label>
+              <p className="text-xs text-slate-500 mt-2">Recommended: Square image, at least 400x400px</p>
+            </div>
+          </div>
+        </div>
+
+        {/* About Profile Image */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-3">About Profile Image (About Section)</label>
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-slate-100 border-2 border-slate-200 flex-shrink-0">
+              {aboutImageData ? (
+                <img src={aboutImageData} alt="About Profile" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <ImageIcon size={32} className="text-slate-400" />
+                </div>
+              )}
+            </div>
+            <div className="text-center sm:text-left">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAboutImageChange}
+                className="hidden"
+                id="about-image-upload"
+              />
+              <label
+                htmlFor="about-image-upload"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 cursor-pointer transition-colors"
+              >
+                <Upload size={16} />
+                Upload About Profile Image
               </label>
               <p className="text-xs text-slate-500 mt-2">Recommended: Square image, at least 400x400px</p>
             </div>
@@ -643,31 +976,421 @@ function CVTab({ settings, onFileUpload, onSave, loading }: any) {
   );
 }
 
+// Logo Tab
+function LogoTab({ settings, onFileUpload, onSave, loading }: any) {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onFileUpload(file, 'logo');
+    }
+  };
+
+  const handleLoginLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onFileUpload(file, 'loginLogo');
+    }
+  };
+
+  if (!settings) return <div className="text-slate-500">Loading...</div>;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
+    >
+      <h2 className="text-2xl font-bold text-slate-900">Logo Management</h2>
+      
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+        {/* Website Logo */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-3">Website Logo (Navbar)</label>
+          <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+              id="logo-upload"
+            />
+            <label
+              htmlFor="logo-upload"
+              className="cursor-pointer"
+            >
+              <Upload size={32} className="mx-auto text-slate-400 mb-3" />
+              <p className="text-sm text-slate-600 mb-1">Click to upload or drag and drop</p>
+              <p className="text-xs text-slate-400">PNG, JPG, SVG files</p>
+            </label>
+          </div>
+        </div>
+
+        {settings?.logo?.url && (
+          <div className="p-4 bg-slate-50 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-900">Current Website Logo</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <img 
+                  src={settings.logo.url} 
+                  alt="Logo" 
+                  className="w-16 h-16 object-contain rounded-lg border border-slate-200"
+                />
+                <a
+                  href={settings.logo.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 text-sm hover:underline"
+                >
+                  View Logo
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Login Page Logo */}
+        <div className="pt-6 border-t border-slate-200">
+          <label className="block text-sm font-medium text-slate-700 mb-3">Login Page Logo</label>
+          <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleLoginLogoChange}
+              className="hidden"
+              id="login-logo-upload"
+            />
+            <label
+              htmlFor="login-logo-upload"
+              className="cursor-pointer"
+            >
+              <Upload size={32} className="mx-auto text-slate-400 mb-3" />
+              <p className="text-sm text-slate-600 mb-1">Click to upload or drag and drop</p>
+              <p className="text-xs text-slate-400">PNG, JPG, SVG files</p>
+            </label>
+          </div>
+        </div>
+
+        {settings?.loginLogo?.url && (
+          <div className="p-4 bg-slate-50 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-900">Current Login Logo</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <img 
+                  src={settings.loginLogo.url} 
+                  alt="Login Logo" 
+                  className="w-16 h-16 object-contain rounded-lg border border-slate-200"
+                />
+                <a
+                  href={settings.loginLogo.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 text-sm hover:underline"
+                >
+                  View Logo
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// Typography Tab
+function TypographyTab({ settings, onSave, loading }: any) {
+  const [typography, setTypography] = useState(settings?.typography || {
+    fontFamily: "Inter, sans-serif",
+    fontSize: {
+      base: "16px",
+      h1: "48px",
+      h2: "36px",
+      h3: "24px",
+      small: "14px"
+    },
+    lineHeight: {
+      normal: "1.5",
+      relaxed: "1.75"
+    },
+    textAlign: "left",
+    fontWeight: {
+      normal: "400",
+      medium: "500",
+      bold: "700"
+    }
+  });
+
+  useEffect(() => {
+    if (settings?.typography) {
+      setTypography(settings.typography);
+    }
+  }, [settings]);
+
+  const handleSave = () => {
+    onSave({ typography });
+  };
+
+  if (!settings) return <div className="text-slate-500">Loading...</div>;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
+    >
+      <h2 className="text-2xl font-bold text-slate-900">Typography Settings</h2>
+      
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+        {/* Font Family */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">Font Family</label>
+          <select
+            value={typography.fontFamily}
+            onChange={(e) => setTypography({ ...typography, fontFamily: e.target.value })}
+            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+          >
+            <option value="Inter, sans-serif">Inter, sans-serif</option>
+            <option value="system-ui, sans-serif">System UI, sans-serif</option>
+            <option value="Arial, sans-serif">Arial, sans-serif</option>
+            <option value="Georgia, serif">Georgia, serif</option>
+            <option value="'Times New Roman', serif">Times New Roman, serif</option>
+            <option value="'Courier New', monospace">Courier New, monospace</option>
+            <option value="Roboto, sans-serif">Roboto, sans-serif</option>
+            <option value="'Open Sans', sans-serif">Open Sans, sans-serif</option>
+            <option value="Lato, sans-serif">Lato, sans-serif</option>
+            <option value="'Helvetica Neue', sans-serif">Helvetica Neue, sans-serif</option>
+          </select>
+        </div>
+
+        {/* Font Sizes */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-3">Font Sizes</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">Base (16px)</label>
+              <select
+                value={typography.fontSize.base}
+                onChange={(e) => setTypography({ ...typography, fontSize: { ...typography.fontSize, base: e.target.value } })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              >
+                <option value="12px">12px</option>
+                <option value="14px">14px</option>
+                <option value="16px">16px</option>
+                <option value="18px">18px</option>
+                <option value="20px">20px</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">H1 (48px)</label>
+              <select
+                value={typography.fontSize.h1}
+                onChange={(e) => setTypography({ ...typography, fontSize: { ...typography.fontSize, h1: e.target.value } })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              >
+                <option value="32px">32px</option>
+                <option value="36px">36px</option>
+                <option value="42px">42px</option>
+                <option value="48px">48px</option>
+                <option value="56px">56px</option>
+                <option value="64px">64px</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">H2 (36px)</label>
+              <select
+                value={typography.fontSize.h2}
+                onChange={(e) => setTypography({ ...typography, fontSize: { ...typography.fontSize, h2: e.target.value } })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              >
+                <option value="24px">24px</option>
+                <option value="28px">28px</option>
+                <option value="32px">32px</option>
+                <option value="36px">36px</option>
+                <option value="42px">42px</option>
+                <option value="48px">48px</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">H3 (24px)</label>
+              <select
+                value={typography.fontSize.h3}
+                onChange={(e) => setTypography({ ...typography, fontSize: { ...typography.fontSize, h3: e.target.value } })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              >
+                <option value="18px">18px</option>
+                <option value="20px">20px</option>
+                <option value="24px">24px</option>
+                <option value="28px">28px</option>
+                <option value="32px">32px</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">Small (14px)</label>
+              <select
+                value={typography.fontSize.small}
+                onChange={(e) => setTypography({ ...typography, fontSize: { ...typography.fontSize, small: e.target.value } })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              >
+                <option value="10px">10px</option>
+                <option value="12px">12px</option>
+                <option value="14px">14px</option>
+                <option value="16px">16px</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Line Height */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-3">Line Height</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">Normal (1.5)</label>
+              <select
+                value={typography.lineHeight.normal}
+                onChange={(e) => setTypography({ ...typography, lineHeight: { ...typography.lineHeight, normal: e.target.value } })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              >
+                <option value="1.2">1.2</option>
+                <option value="1.3">1.3</option>
+                <option value="1.4">1.4</option>
+                <option value="1.5">1.5</option>
+                <option value="1.6">1.6</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">Relaxed (1.75)</label>
+              <select
+                value={typography.lineHeight.relaxed}
+                onChange={(e) => setTypography({ ...typography, lineHeight: { ...typography.lineHeight, relaxed: e.target.value } })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              >
+                <option value="1.5">1.5</option>
+                <option value="1.6">1.6</option>
+                <option value="1.75">1.75</option>
+                <option value="1.8">1.8</option>
+                <option value="2.0">2.0</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Text Alignment */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">Text Alignment</label>
+          <select
+            value={typography.textAlign}
+            onChange={(e) => setTypography({ ...typography, textAlign: e.target.value as "left" | "center" | "right" })}
+            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+          >
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+          </select>
+        </div>
+
+        {/* Font Weights */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-3">Font Weights</label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">Normal (400)</label>
+              <select
+                value={typography.fontWeight.normal}
+                onChange={(e) => setTypography({ ...typography, fontWeight: { ...typography.fontWeight, normal: e.target.value } })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              >
+                <option value="300">300 (Light)</option>
+                <option value="400">400 (Normal)</option>
+                <option value="500">500 (Medium)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">Medium (500)</label>
+              <select
+                value={typography.fontWeight.medium}
+                onChange={(e) => setTypography({ ...typography, fontWeight: { ...typography.fontWeight, medium: e.target.value } })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              >
+                <option value="400">400 (Normal)</option>
+                <option value="500">500 (Medium)</option>
+                <option value="600">600 (Semi-bold)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">Bold (700)</label>
+              <select
+                value={typography.fontWeight.bold}
+                onChange={(e) => setTypography({ ...typography, fontWeight: { ...typography.fontWeight, bold: e.target.value } })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              >
+                <option value="600">600 (Semi-bold)</option>
+                <option value="700">700 (Bold)</option>
+                <option value="800">800 (Extra-bold)</option>
+                <option value="900">900 (Black)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <div className="pt-4 border-t border-slate-200">
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Save size={16} />
+            {loading ? 'Saving...' : 'Save Typography Settings'}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // Password Tab
-function PasswordTab({ onChangePassword }: any) {
+function PasswordTab({ onChangePassword, settings }: any) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [newUsername, setNewUsername] = useState('');
+  const [securityQuestion, setSecurityQuestion] = useState('');
+  const [securityAnswer, setSecurityAnswer] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (settings?.security) {
+      setSecurityQuestion(settings.security.securityQuestion || '');
+      setSecurityAnswer(settings.security.securityAnswer || '');
+    }
+  }, [settings]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (newPassword !== confirmPassword) {
+    if (newPassword && newPassword !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword && newPassword.length < 6) {
       setError('Password must be at least 6 characters');
       return;
     }
 
-    onChangePassword(currentPassword, newPassword);
+    onChangePassword(currentPassword, newPassword, newUsername, securityQuestion, securityAnswer);
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
+    setNewUsername('');
   };
 
   return (
@@ -677,7 +1400,7 @@ function PasswordTab({ onChangePassword }: any) {
       exit={{ opacity: 0, y: -20 }}
       className="space-y-6"
     >
-      <h2 className="text-2xl font-bold text-slate-900">Change Password</h2>
+      <h2 className="text-2xl font-bold text-slate-900">Change Credentials</h2>
       
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
@@ -692,23 +1415,55 @@ function PasswordTab({ onChangePassword }: any) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">New Password</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">New Username (optional)</label>
+            <input
+              type="text"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              placeholder="Leave blank to keep current"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">New Password (optional)</label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
-              required
+              placeholder="Leave blank to keep current"
+            />
+          </div>
+          {newPassword && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Confirm New Password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+                required={!!newPassword}
+              />
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Security Question</label>
+            <input
+              type="text"
+              value={securityQuestion}
+              onChange={(e) => setSecurityQuestion(e.target.value)}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              placeholder="e.g., What is your mother's maiden name?"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Confirm New Password</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Security Answer</label>
             <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              type="text"
+              value={securityAnswer}
+              onChange={(e) => setSecurityAnswer(e.target.value)}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
-              required
+              placeholder="Your answer"
             />
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -717,7 +1472,7 @@ function PasswordTab({ onChangePassword }: any) {
             className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
           >
             <Lock size={16} />
-            Change Password
+            Update Credentials
           </button>
         </form>
       </div>
@@ -1318,7 +2073,7 @@ function ColorsTab({ settings, onSave, loading }: any) {
 }
 
 // Content Tab
-function ContentTab({ settings, onSave, loading }: any) {
+function ContentTab({ settings, onSave, onFileUpload, loading }: any) {
   const [content, setContent] = useState(settings?.siteContent || {});
 
   useEffect(() => {
@@ -1329,6 +2084,13 @@ function ContentTab({ settings, onSave, loading }: any) {
 
   const handleSave = () => {
     onSave({ siteContent: content });
+  };
+
+  const handleAboutImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onFileUpload(file, 'about');
+    }
   };
 
   if (!settings) return <div className="text-slate-500">Loading...</div>;
@@ -1506,6 +2268,37 @@ function ContentTab({ settings, onSave, loading }: any) {
                 onChange={(e) => setContent({ ...content, about: { ...content.about, downloadCV: e.target.value } })}
                 className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
               />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">About Section Image</label>
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <div className="w-32 h-32 rounded-lg overflow-hidden bg-slate-100 border-2 border-slate-200 flex-shrink-0">
+                  {content.about?.image ? (
+                    <img src={content.about.image} alt="About" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ImageIcon size={32} className="text-slate-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="text-center sm:text-left">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAboutImageChange}
+                    className="hidden"
+                    id="about-image-upload"
+                  />
+                  <label
+                    htmlFor="about-image-upload"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 cursor-pointer transition-colors"
+                  >
+                    <Upload size={16} />
+                    Upload Image
+                  </label>
+                  <p className="text-xs text-slate-500 mt-2">Recommended: Image that represents you or your work</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

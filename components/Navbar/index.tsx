@@ -10,8 +10,21 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [active, setActive] = useState("");
   const [langOpen, setLangOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState("/images/profile/isaac-profile-four.jpeg");
   const langRef = useRef<HTMLDivElement>(null);
   const { t, locale, setLocale } = useTranslation();
+
+  useEffect(() => {
+    // Fetch logo from settings
+    fetch('/api/admin/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.logo?.url) {
+          setLogoUrl(data.logo.url);
+        }
+      })
+      .catch(err => console.error('Failed to fetch logo:', err));
+  }, []);
 
   const navLinks = [
     { href: "#about",     label: t.nav.about },
@@ -61,7 +74,7 @@ export default function Navbar() {
           {/* Logo */}
           <a href="#home" className="flex items-center gap-2 group flex-shrink-0">
             <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-blue-500/50 group-hover:ring-blue-400 transition-all duration-300">
-              <Image src="/images/profile/isaac-profile-four.jpeg" alt="Isaac" width={32} height={32} className="object-cover object-top w-full h-full" />
+              <Image src={logoUrl} alt="Logo" width={32} height={32} className="object-cover object-top w-full h-full" />
             </div>
             <span className="font-bold text-white text-sm hidden sm:block">
               Isaac<span className="text-blue-400">.dev</span>

@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { IMAGES, PROFILE_ALT } from "@/lib/images";
+import { PROFILE_ALT } from "@/lib/images";
 
 interface ProfileImageProps {
   size?: number;
@@ -34,6 +34,19 @@ export default function ProfileImage({
   priority = false,
 }: ProfileImageProps) {
   const [error, setError] = useState(false);
+  const [profileImage, setProfileImage] = useState("/images/profile/isaac-profile.jpg");
+
+  useEffect(() => {
+    // Fetch profile image from settings
+    fetch('/api/admin/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.profile?.profileImage) {
+          setProfileImage(data.profile.profileImage);
+        }
+      })
+      .catch(err => console.error('Failed to fetch profile image:', err));
+  }, []);
 
   if (error) {
     return <AvatarFallback className={className} />;
@@ -41,7 +54,7 @@ export default function ProfileImage({
 
   return (
     <Image
-      src={IMAGES.profile}
+      src={profileImage}
       alt={PROFILE_ALT}
       width={size}
       height={size}

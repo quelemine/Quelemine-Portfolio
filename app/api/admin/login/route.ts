@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
-import type { AdminSettings, Education } from "@/types/admin";
+import type { AdminSettings } from "@/types/admin";
 
 const SETTINGS_FILE = path.join(process.cwd(), 'data', 'adminSettings.json');
 
@@ -62,73 +62,30 @@ async function readSettings(): Promise<AdminSettings> {
   }
 }
 
-// Helper function to write settings
-async function writeSettings(settings: AdminSettings): Promise<void> {
-  await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
-}
-
-// GET - Fetch all education
-export async function GET() {
-  try {
-    const settings = await readSettings();
-    return NextResponse.json(settings.education);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch education' }, { status: 500 });
-  }
-}
-
-// POST - Add new education
+// POST - Verify username and password
 export async function POST(request: Request) {
   try {
-    const education = await request.json();
-    const settings = await readSettings();
-    
-    // Generate new ID
-    const maxId = settings.education.reduce((max, e) => Math.max(max, e.id), 0);
-    education.id = maxId + 1;
-    
-    settings.education.push(education);
-    await writeSettings(settings);
-    
-    return NextResponse.json(education);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to add education' }, { status: 500 });
-  }
-}
+    const { username, password } = await request.json();
 
-// PUT - Update education
-export async function PUT(request: Request) {
-  try {
-    const updatedEducation = await request.json();
-    const settings = await readSettings();
-    
-    const index = settings.education.findIndex(e => e.id === updatedEducation.id);
-    if (index === -1) {
-      return NextResponse.json({ error: 'Education not found' }, { status: 404 });
+    if (!username || !password) {
+      return NextResponse.json({ error: 'Username and password are required' }, { status: 400 });
     }
-    
-    settings.education[index] = updatedEducation;
-    await writeSettings(settings);
-    
-    return NextResponse.json(updatedEducation);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to update education' }, { status: 500 });
-  }
-}
 
-// DELETE - Delete education
-export async function DELETE(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = parseInt(searchParams.get('id') || '0');
-    
+    const envPassword = process.env.ADMIN_PASSWORD || "";
     const settings = await readSettings();
-    settings.education = settings.education.filter(e => e.id !== id);
+    const storedUsername = settings.security.username || "admin";
+    const storedPassword = settings.security.password || "";
     
-    await writeSettings(settings);
+    // Check username and password
+    const isUsernameValid = username === storedUsername;
+    const isPasswordValid = password === envPassword || password === storedPassword;
     
-    return NextResponse.json({ success: true });
+    if (isUsernameValid && isPasswordValid) {
+      return NextResponse.json({ success: true });
+    } else {
+      return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
+    }
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete education' }, { status: 500 });
+    return NextResponse.json({ error: 'Authentication failed' }, { status: 500 });
   }
 }

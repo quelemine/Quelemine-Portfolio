@@ -3,9 +3,23 @@ import { motion } from "framer-motion";
 import { Download, Mail, FolderOpen, MapPin } from "lucide-react";
 import Image from "next/image";
 import { useTranslation } from "@/context/LanguageContext";
+import { useState, useEffect } from "react";
 
 export default function Hero() {
   const { t } = useTranslation();
+  const [profileImage, setProfileImage] = useState("/images/profile/isaac-profile.jpg");
+
+  useEffect(() => {
+    // Fetch profile image from settings
+    fetch('/api/admin/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.profile?.profileImage) {
+          setProfileImage(data.profile.profileImage);
+        }
+      })
+      .catch(err => console.error('Failed to fetch profile image:', err));
+  }, []);
   return (
     <section
       id="home"
@@ -111,7 +125,7 @@ export default function Hero() {
 
               {/* Profile circle */}
               <div className="relative w-56 h-64 sm:w-72 sm:h-80 lg:w-80 lg:h-[22rem] rounded-[50%] profile-glow overflow-hidden ring-2 ring-blue-500/30 hover:ring-blue-400/50 transition-all duration-500 max-w-full">
-                <Image src="/images/profile/isaac-profile.jpg" alt="Isaac L. Quelemine" fill className="object-cover object-top" priority />
+                <Image src={profileImage} alt="Isaac L. Quelemine" fill className="object-cover object-top" priority />
               </div>
 
               {/* Status badge */}

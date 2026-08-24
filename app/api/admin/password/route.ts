@@ -21,16 +21,21 @@ async function readSettings(): Promise<AdminSettings> {
         availableForWork: true,
         profileImage: ""
       },
+      logo: { url: "" },
+      loginLogo: { url: "" },
       cv: { url: "", filename: "", uploadDate: "" },
       projects: [],
       education: [],
       colors: {
-        primary: "#2563eb",
-        secondary: "#0B1F3A",
-        accent: "#3b82f6",
-        background: "#ffffff",
-        text: "#1e293b",
-        cardBackground: "#ffffff"
+        primary: "", secondary: "", accent: "",
+        background: "", text: "", cardBackground: ""
+      },
+      typography: {
+        fontFamily: "",
+        fontSize: { base: "", h1: "", h2: "", h3: "", small: "" },
+        lineHeight: { normal: "", relaxed: "" },
+        textAlign: "left",
+        fontWeight: { normal: "", medium: "", bold: "" }
       },
       siteContent: {
         hero: {
@@ -41,7 +46,7 @@ async function readSettings(): Promise<AdminSettings> {
         about: {
           sectionLabel: "", sectionTitle: "",
           bio1: "", bio2: "", bio3: "", bio4: "",
-          tags: [], getInTouch: "", downloadCV: "",
+          tags: [], getInTouch: "", downloadCV: "", image: "",
           highlights: {
             international: { label: "", desc: "" },
             education: { label: "", desc: "" },
@@ -52,7 +57,7 @@ async function readSettings(): Promise<AdminSettings> {
         contact: { email: "", phone: "", address: "" },
         social: { github: "", linkedin: "", twitter: "" }
       },
-      security: { password: "" }
+      security: { username: "admin", password: "", securityQuestion: "", securityAnswer: "" }
     };
   }
 }
@@ -62,13 +67,13 @@ async function writeSettings(settings: AdminSettings): Promise<void> {
   await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
 }
 
-// POST - Verify current password and set new password
+// POST - Verify current password and set new password/username/security
 export async function POST(request: Request) {
   try {
-    const { currentPassword, newPassword } = await request.json();
+    const { currentPassword, newPassword, newUsername, securityQuestion, securityAnswer } = await request.json();
 
-    if (!currentPassword || !newPassword) {
-      return NextResponse.json({ error: 'Current and new password are required' }, { status: 400 });
+    if (!currentPassword) {
+      return NextResponse.json({ error: 'Current password is required' }, { status: 400 });
     }
 
     const settings = await readSettings();
@@ -83,12 +88,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 });
     }
 
-    // Update password in settings
-    settings.security.password = newPassword;
+    // Update password, username, and security settings
+    if (newPassword) {
+      settings.security.password = newPassword;
+    }
+    if (newUsername) {
+      settings.security.username = newUsername;
+    }
+    if (securityQuestion !== undefined) {
+      settings.security.securityQuestion = securityQuestion;
+    }
+    if (securityAnswer !== undefined) {
+      settings.security.securityAnswer = securityAnswer;
+    }
+    
     await writeSettings(settings);
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to change password' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update credentials' }, { status: 500 });
   }
 }
