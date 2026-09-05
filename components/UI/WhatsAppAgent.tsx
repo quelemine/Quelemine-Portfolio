@@ -15,7 +15,8 @@ const WA_PRIMARY   = "+231880857969";
 const WA_SECONDARY = "+905338721736";
 const PHONE_RW     = "+250793148624";
 const EMAIL        = "quelemineisaacl@gmail.com";
-const BOT_NAME     = "Isaac's Assistant";
+const BOT_NAME     = "Isaac L. Quelemine";
+const BOT_ROLE     = "Junior Software Engineer";
 
 // Chat width / height constants used for viewport clamping
 const CHAT_W  = 384; // ~w-96 on desktop
@@ -27,7 +28,7 @@ const MIN_H = 400;
 const MAX_W = 600;
 const MAX_H = 800;
 
-function getBotReply(input: string, name: string): { text: string; whatsappMsg?: string; attachment?: { name: string; url: string; type: string } } {
+export function getBotReply(input: string, name: string): { text: string; whatsappMsg?: string; attachment?: { name: string; url: string; type: string } } {
   const q = input.toLowerCase().trim();
 
   if (/who is isaac|tell me about isaac|about isaac|introduce|isaac quelemine|quelemine|what do you know about (him|isaac)|tell me (more|something) about (him|isaac)/.test(q))
@@ -79,7 +80,12 @@ function getBotReply(input: string, name: string): { text: string; whatsappMsg?:
       text: `The SICM Church Management System is a full-stack web application built for SICM — a faith-based organization in Liberia. It features member registration, attendance tracking, event scheduling, and administrative dashboards, built with PHP and MySQL. It also supports the organization's website to streamline ministry coordination and communication across Liberia.\n\nVisit the SICM website: https://sicmchurch.gt.tc/index.php?i=1 🙏`,
     };
 
-  if (/hello|hi|hey|good|morning|afternoon|evening|howdy/.test(q))
+  if (/^(?:bye|goodbye|good night|see you|take care|farewell|cya|later)\b/.test(q))
+    return {
+      text: `Thanks for chatting, ${name}! Have a wonderful day! 😊👋`,
+    };
+
+  if (/^(?:hello|hi|hey|howdy|good\s+(?:morning|afternoon|evening))\b/.test(q))
     return {
       text: `Hey ${name}! 👋 How can I help you today? You can ask about Isaac's skills, projects, education, or I can connect you with him directly on WhatsApp.`,
     };
@@ -410,20 +416,17 @@ export default function WhatsAppAgent() {
               aria-label={mobile ? "Chat header" : "Drag to move chat window"}
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/30 flex-shrink-0">
+                <div className="w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/30 flex-shrink-0 bg-slate-800">
                   <Image
                     src="/images/profile/isaac-profile.jpg"
-                    alt="Isaac"
+                    alt="Isaac L. Quelemine"
                     width={36} height={36}
                     className="object-cover object-top w-full h-full"
                   />
                 </div>
-                <div>
-                  <p className="text-white font-semibold text-sm">{BOT_NAME}</p>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 bg-green-200 rounded-full animate-pulse" />
-                    <span className="text-green-100 text-xs">Online · Replies instantly</span>
-                  </div>
+                <div className="min-w-0">
+                  <p className="text-white font-semibold text-sm leading-tight truncate">{BOT_NAME}</p>
+                  <p className="text-green-100 text-[10px] uppercase tracking-[0.12em] leading-tight">{BOT_ROLE}</p>
                 </div>
               </div>
 

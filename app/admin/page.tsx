@@ -1,10 +1,10 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   LogOut, MessageSquare, User, Settings, Upload, Lock, 
   FolderOpen, GraduationCap, Palette, FileText, Save, Plus,
-  Edit2, Trash2, X, Check, ChevronDown, ChevronUp, Image as ImageIcon,
+  Edit2, Trash2, X, ChevronDown, ChevronUp, Image as ImageIcon,
   Eye, EyeOff
 } from "lucide-react";
 import { getAllSessions, clearAllSessions, deleteSession, type ChatSession } from "@/lib/chatLogger";
@@ -38,7 +38,22 @@ export default function AdminDashboard() {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editingEducation, setEditingEducation] = useState<Education | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadSettings = async () => {
+    try {
+      const response = await fetch('/api/admin/settings');
+      if (response.ok) {
+        const data = await response.json();
+        setSettings(data);
+        // Update login logo when settings are loaded
+        if (data.loginLogo?.url) {
+          setLoginLogo(data.loginLogo.url);
+        }
+      }
+    } catch {
+      showNotification('error', 'Failed to load settings');
+    }
+  };
 
   useEffect(() => {
     // Fetch login logo on component mount (before authentication)
@@ -63,22 +78,6 @@ export default function AdminDashboard() {
       setSessions(getAllSessions());
     }
   }, [authed, activeTab]);
-
-  const loadSettings = async () => {
-    try {
-      const response = await fetch('/api/admin/settings');
-      if (response.ok) {
-        const data = await response.json();
-        setSettings(data);
-        // Update login logo when settings are loaded
-        if (data.loginLogo?.url) {
-          setLoginLogo(data.loginLogo.url);
-        }
-      }
-    } catch (error) {
-      showNotification('error', 'Failed to load settings');
-    }
-  };
 
   const login = async (e: React.FormEvent) => {
     e.preventDefault();

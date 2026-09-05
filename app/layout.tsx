@@ -20,12 +20,17 @@ const manrope = Manrope({
   display: "swap",
 });
 
-const BASE_URL = "https://queleminetech.info";
+const BASE_URL = "https://quelemine.com";
 
 export const metadata: Metadata = {
   title: "Isaac L. Quelemine | Junior Software Engineer | Full Stack Developer",
   description:
     "Liberian Junior Software Engineer based in Rwanda. Full Stack Developer specializing in React.js, Java, Spring Boot, PHP, and modern web technologies.",
+  icons: {
+    icon: IMAGES.profile,
+    shortcut: IMAGES.profile,
+    apple: IMAGES.profile,
+  },
   keywords: [
     "Software Engineer Rwanda",
     "Full Stack Developer",
@@ -37,7 +42,7 @@ export const metadata: Metadata = {
     "Isaac Quelemine",
     "Liberian Developer",
   ],
-  authors: [{ name: "Isaac L. Quelemine", url: BASE_URL }],
+  authors: [{ name: "Isaac L. Quelemine", url: "https://quelemine.com" }],
   metadataBase: new URL(BASE_URL),
   openGraph: {
     title: "Isaac L. Quelemine | Junior Software Engineer",
