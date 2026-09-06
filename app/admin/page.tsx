@@ -4,14 +4,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   LogOut, MessageSquare, User, Settings, Upload, Lock, 
   FolderOpen, GraduationCap, Palette, FileText, Save, Plus,
-  Edit2, Trash2, X, Check, ChevronDown, ChevronUp, Image as ImageIcon,
+  Edit2, Trash2, X, Check, ChevronDown, ChevronUp, Image as ImageIcon, Video,
   Eye, EyeOff
 } from "lucide-react";
 import { getAllSessions, clearAllSessions, deleteSession, type ChatSession } from "@/lib/chatLogger";
 import type { AdminSettings, Project, Education } from "@/types/admin";
 
 
-type TabType = 'dashboard' | 'profile' | 'cv' | 'password' | 'projects' | 'education' | 'colors' | 'content' | 'logo' | 'typography' | 'chatlogs';
+type TabType = 'dashboard' | 'profile' | 'cv' | 'videos' | 'password' | 'projects' | 'education' | 'colors' | 'content' | 'logo' | 'typography' | 'chatlogs';
 
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState(false);
@@ -206,7 +206,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleFileUpload = async (file: File, type: 'profile' | 'cv' | 'about' | 'logo' | 'loginLogo') => {
+  const handleFileUpload = async (file: File, type: 'profile' | 'cv' | 'about' | 'logo' | 'loginLogo' | 'video') => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', type);
@@ -229,6 +229,8 @@ export default function AdminDashboard() {
           await handleSaveSettings({ logo: { ...settings!.logo, url: data.url } });
         } else if (type === 'loginLogo') {
           await handleSaveSettings({ loginLogo: { ...settings!.loginLogo, url: data.url } });
+        } else if (type === 'video') {
+          await handleSaveSettings({ featuredVideo: { ...(settings!.featuredVideo ?? {}), url: data.url, filename: data.filename } });
         }
         // Reload settings to get the updated data
         await loadSettings();
@@ -518,6 +520,7 @@ export default function AdminDashboard() {
     { id: 'dashboard' as TabType, label: 'Dashboard', icon: MessageSquare },
     { id: 'profile' as TabType, label: 'Profile', icon: User },
     { id: 'cv' as TabType, label: 'CV', icon: FileText },
+    { id: 'videos' as TabType, label: 'Videos', icon: Video },
     { id: 'logo' as TabType, label: 'Logo', icon: ImageIcon },
     { id: 'password' as TabType, label: 'Password', icon: Lock },
     { id: 'projects' as TabType, label: 'Projects', icon: FolderOpen },
@@ -581,6 +584,15 @@ export default function AdminDashboard() {
               <CVTab 
                 key="cv" 
                 settings={settings} 
+                onFileUpload={handleFileUpload}
+                onSave={handleSaveSettings}
+                loading={loading}
+              />
+            )}
+            {activeTab === 'videos' && (
+              <VideoTab
+                key="videos"
+                settings={settings}
                 onFileUpload={handleFileUpload}
                 onSave={handleSaveSettings}
                 loading={loading}
@@ -1500,11 +1512,112 @@ function TypographyTab({ settings, onSave, loading }: any) {
   );
 }
 
+// Video Tab
+function VideoTab({ settings, onFileUpload, onSave, loading }: any) {
+  const [title, setTitle] = useState(settings?.featuredVideo?.title || '');
+  const [description, setDescription] = useState(settings?.featuredVideo?.description || '');
+
+  if (!settings) return <div className="text-slate-500">Loading...</div>;
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) onFileUpload(file, 'video');
+  };
+
+  const handleSave = (event: React.FormEvent) => {
+    event.preventDefault();
+    onSave({
+      featuredVideo: {
+        ...(settings.featuredVideo ?? { url: '', filename: '' }),
+        title,
+        description,
+      },
+    });
+  };
+
+  const video = settings.featuredVideo;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
+    >
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900">Featured Video</h2>
+        <p className="text-sm text-slate-500 mt-1">Upload a video to display in a dedicated section on your homepage.</p>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6 max-w-3xl">
+        <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
+          <input
+            type="file"
+            accept="video/mp4,video/webm,video/ogg"
+            onChange={handleFileChange}
+            className="hidden"
+            id="featured-video-upload"
+          />
+          <label htmlFor="featured-video-upload" className="cursor-pointer">
+            <Video size={32} className="mx-auto text-slate-400 mb-3" />
+            <p className="text-sm text-slate-600 mb-1">Click to upload a video</p>
+            <p className="text-xs text-slate-400">MP4, WebM, or Ogg · Maximum 100 MB</p>
+          </label>
+        </div>
+
+        {video?.url && (
+          <div className="space-y-3">
+            <video controls preload="metadata" className="w-full rounded-xl bg-slate-900">
+              <source src={video.url} />
+              Your browser does not support video playback.
+            </video>
+            <p className="text-xs text-slate-500 truncate">{video.filename}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSave} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Video Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="e.g., My portfolio introduction"
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Description (optional)</label>
+            <textarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              rows={3}
+              placeholder="Briefly describe the video"
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading || !video?.url}
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Save size={16} />
+            Save Video Details
+          </button>
+        </form>
+      </div>
+    </motion.div>
+  );
+}
+
 // Password Tab
 function PasswordTab({ onChangePassword, settings }: any) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [securityQuestion, setSecurityQuestion] = useState('');
   const [securityAnswer, setSecurityAnswer] = useState('');
@@ -1551,13 +1664,23 @@ function PasswordTab({ onChangePassword, settings }: any) {
         <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Current Password</label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showCurrentPassword ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-4 py-2 pr-11 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute inset-y-0 right-0 px-3 text-slate-500 hover:text-slate-700"
+                aria-label={showCurrentPassword ? "Hide current password" : "Show current password"}
+              >
+                {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">New Username (optional)</label>
@@ -1571,24 +1694,44 @@ function PasswordTab({ onChangePassword, settings }: any) {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">New Password (optional)</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Leave blank to keep current"
-            />
+            <div className="relative">
+              <input
+                type={showNewPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-4 py-2 pr-11 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+                placeholder="Leave blank to keep current"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute inset-y-0 right-0 px-3 text-slate-500 hover:text-slate-700"
+                aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+              >
+                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           {newPassword && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Confirm New Password</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
-                required={!!newPassword}
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-2 pr-11 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+                  required={!!newPassword}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 px-3 text-slate-500 hover:text-slate-700"
+                  aria-label={showConfirmPassword ? "Hide confirmed password" : "Show confirmed password"}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
           )}
           <div>

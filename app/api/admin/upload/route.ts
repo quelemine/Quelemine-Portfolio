@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    if (!type || !['profile', 'cv', 'about', 'logo', 'loginLogo'].includes(type)) {
+    if (!type || !['profile', 'cv', 'about', 'logo', 'loginLogo', 'video'].includes(type)) {
       return NextResponse.json({ error: 'Invalid upload type' }, { status: 400 });
     }
 
@@ -24,6 +24,15 @@ export async function POST(request: Request) {
 
     if (type === 'cv' && file.type !== 'application/pdf') {
       return NextResponse.json({ error: 'CV must be a PDF file' }, { status: 400 });
+    }
+
+    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+    if (type === 'video' && !allowedVideoTypes.includes(file.type)) {
+      return NextResponse.json({ error: 'Video must be an MP4, WebM, or Ogg file' }, { status: 400 });
+    }
+
+    if (type === 'video' && file.size > 100 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Video must be 100 MB or smaller' }, { status: 400 });
     }
 
     // Create upload directory if it doesn't exist

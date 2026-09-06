@@ -26,6 +26,10 @@ export const metadata: Metadata = {
   title: "Isaac L. Quelemine | Junior Software Engineer | Full Stack Developer",
   description:
     "Liberian Junior Software Engineer based in Rwanda. Full Stack Developer specializing in React.js, Java, Spring Boot, PHP, and modern web technologies.",
+  icons: {
+    icon: [{ url: "/images/profile/isaac-profile.jpg", type: "image/jpeg" }],
+    apple: [{ url: "/images/profile/isaac-profile.jpg", type: "image/jpeg" }],
+  },
   keywords: [
     "Software Engineer Rwanda",
     "Full Stack Developer",

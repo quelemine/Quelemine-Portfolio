@@ -20,6 +20,12 @@ export interface AdminSettings {
     filename: string;
     uploadDate: string;
   };
+  featuredVideo?: {
+    url: string;
+    filename: string;
+    title?: string;
+    description?: string;
+  };
   projects: Project[];
   education: Education[];
   colors: ColorTheme;
