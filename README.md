@@ -2,7 +2,7 @@
 
 Professional portfolio for **Isaac L. Quelemine**, Junior Software Engineer & Full Stack Developer.
 
-🌐 Live: [queleminetech.info](https://queleminetech.info)
+🌐 Live: [quelemine.com](https://quelemine.com)
 
 ## Tech Stack
 
