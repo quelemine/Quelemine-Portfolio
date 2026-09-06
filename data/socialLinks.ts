@@ -56,7 +56,7 @@ export const socialLinks = [
   {
     id: "website",
     name: "Website",
-    url: "https://queleminetech.info",
+    url: "https://quelemine.com",
     icon: "Globe",
     color: "hover:text-teal-400",
     bg: "hover:bg-teal-400/10",

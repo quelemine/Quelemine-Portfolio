@@ -86,7 +86,7 @@ function getBotReply(input: string, name: string): { text: string; whatsappMsg?:
 
   if (/portfolio|website|built/.test(q))
     return {
-      text: `Isaac's portfolio at queleminetech.info showcases his full-stack projects including the SICM Church Management System, REST API systems, responsive frontends, and database-driven applications. Check out the Projects section above! 🖥️`,
+      text: `Isaac's portfolio at quelemine.com showcases his full-stack projects including the SICM Church Management System, REST API systems, responsive frontends, and database-driven applications. Check out the Projects section above! 🖥️`,
     };
 
   if (/available|open|free/.test(q))

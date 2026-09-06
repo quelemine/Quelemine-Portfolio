@@ -23,7 +23,7 @@ export const projects: Project[] = [
     technologies: ["React.js", "Spring Boot", "MySQL", "REST API", "Java"],
     category: "fullstack",
     github: "https://github.com/quelemine",
-    demo: "https://queleminetech.info",
+    demo: "https://quelemine.com",
     featured: true,
   },
   {
@@ -34,7 +34,7 @@ export const projects: Project[] = [
     technologies: ["Java", "Spring Boot", "PostgreSQL", "REST API"],
     category: "backend",
     github: "https://github.com/quelemine",
-    demo: "https://queleminetech.info",
+    demo: "https://quelemine.com",
     featured: true,
   },
   {
@@ -45,7 +45,7 @@ export const projects: Project[] = [
     technologies: ["HTML5", "CSS3", "JavaScript", "Responsive Design"],
     category: "frontend",
     github: "https://github.com/quelemine",
-    demo: "https://queleminetech.info",
+    demo: "https://quelemine.com",
     featured: false,
   },
   {
@@ -56,7 +56,7 @@ export const projects: Project[] = [
     technologies: ["MySQL", "SQL", "PHP", "Database Design"],
     category: "database",
     github: "https://github.com/quelemine",
-    demo: "https://queleminetech.info",
+    demo: "https://quelemine.com",
     featured: false,
   },
   {
@@ -67,7 +67,7 @@ export const projects: Project[] = [
     technologies: ["PHP", "MySQL", "HTML5", "CSS3", "JavaScript"],
     category: "fullstack",
     github: "https://github.com/quelemine",
-    demo: "https://queleminetech.info",
+    demo: "https://quelemine.com",
     featured: true,
   },
   {
@@ -78,7 +78,7 @@ export const projects: Project[] = [
     technologies: ["React.js", "JavaScript", "CSS3", "REST API"],
     category: "frontend",
     github: "https://github.com/quelemine",
-    demo: "https://queleminetech.info",
+    demo: "https://quelemine.com",
     featured: false,
   },
   {

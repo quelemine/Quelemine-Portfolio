@@ -36,7 +36,7 @@ npm start            # Start production server (port 3000)
 1. Connect GitHub repo `quelemine/Quelemine-Portfolio` to Vercel.
 2. Set environment variables in Vercel dashboard → Settings → Environment Variables.
 3. Deploy from `master` branch.
-4. Custom domain: `queleminetech.info` → add in Vercel Domains settings.
+4. Custom domain: `quelemine.com` → add in your hosting provider's domain settings.
 
 ### Other Node.js Hosts (Railway, Render, VPS)
 1. Set `NODE_ENV=production`.

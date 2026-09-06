@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: "https://queleminetech.info",
+      url: "https://quelemine.com",
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 1,

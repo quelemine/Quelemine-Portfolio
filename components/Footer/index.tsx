@@ -47,7 +47,7 @@ export default function Footer() {
               {[
                 { icon: FaGithub, href: "https://github.com/quelemine", label: "GitHub" },
                 { icon: FaLinkedin, href: "https://www.linkedin.com/in/isaac-l-quelemine-873633132", label: "LinkedIn" },
-                { icon: Globe, href: "https://queleminetech.info", label: "Website" },
+                { icon: Globe, href: "https://quelemine.com", label: "Website" },
               ].map((s) => (
                 <a
                   key={s.label}

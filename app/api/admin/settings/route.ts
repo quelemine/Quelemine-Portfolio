@@ -90,7 +90,7 @@ async function readSettings(): Promise<AdminSettings> {
           }
         },
         contact: {
-          email: "contact@queleminetech.info",
+          email: "contact@quelemine.com",
           phone: "",
           address: "Kigali, Rwanda"
         },

@@ -20,7 +20,7 @@ const manrope = Manrope({
   display: "swap",
 });
 
-const BASE_URL = "https://queleminetech.info";
+const BASE_URL = "https://quelemine.com";
 
 export const metadata: Metadata = {
   title: "Isaac L. Quelemine | Junior Software Engineer | Full Stack Developer",
