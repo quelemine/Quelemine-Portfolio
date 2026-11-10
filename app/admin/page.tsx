@@ -82,7 +82,7 @@ export default function AdminDashboard() {
   const [pwInput, setPwInput] = useState("");
   const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [forgotMode, setForgotMode] = useState<"none" | "question" | "reset">("none");
+  const [forgotMode, setForgotMode] = useState<"none" | "lookup" | "answer" | "reset">("none");
   const [forgotUser, setForgotUser] = useState("");
   const [forgotQuestion, setForgotQuestion] = useState("");
   const [forgotAnswer, setForgotAnswer] = useState("");
@@ -539,31 +539,55 @@ export default function AdminDashboard() {
               </button>
               <button
                 type="button"
-                onClick={async () => {
-                  setForgotMode("question");
+                onClick={() => {
+                  setForgotMode("lookup");
                   setLoginError("");
                   setForgotUser(usernameInput.trim());
-                  if (usernameInput.trim()) {
-                    try {
-                      const res = await fetch(`/api/admin/reset-password?username=${encodeURIComponent(usernameInput.trim())}`);
-                      const data = await res.json().catch(() => ({}));
-                      if (res.ok && data.securityQuestion) setForgotQuestion(data.securityQuestion);
-                      else setForgotQuestion("");
-                    } catch { setForgotQuestion(""); }
-                  }
+                  setForgotQuestion("");
+                  setForgotAnswer("");
                 }}
                 className="w-full text-center text-xs text-blue-400 hover:text-blue-300 transition-colors"
               >
                 Forgot password?
               </button>
             </form>
-          ) : forgotMode === "question" ? (
+          ) : forgotMode === "lookup" ? (
             <form
               className="space-y-4"
               onSubmit={async (e) => {
                 e.preventDefault();
                 setLoginError("");
-                if (!forgotUser.trim() || !forgotAnswer.trim()) { setLoginError("Username and answer are required"); return; }
+                if (!forgotUser.trim()) { setLoginError("Username is required"); return; }
+                setForgotBusy(true);
+                try {
+                  const res = await fetch(`/api/admin/reset-password?username=${encodeURIComponent(forgotUser.trim())}`);
+                  const data = await res.json().catch(() => ({}));
+                  if (res.ok && data.securityQuestion) {
+                    setForgotQuestion(data.securityQuestion);
+                    setForgotMode("answer");
+                  } else {
+                    setLoginError("Password recovery is not set up for this account. Log in and configure it in the Password tab.");
+                  }
+                } catch { setLoginError("Could not load recovery info. Try again."); }
+                finally { setForgotBusy(false); }
+              }}
+            >
+              <p className="text-white text-sm font-semibold text-center">Reset Password</p>
+              <p className="text-slate-400 text-xs text-center">Enter your username to continue.</p>
+              <input type="text" value={forgotUser} onChange={(e) => setForgotUser(e.target.value)} placeholder="Username" autoComplete="username" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60" />
+              {loginError && <p className="text-red-400 text-xs">{loginError}</p>}
+              <button type="submit" disabled={forgotBusy} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors">
+                {forgotBusy ? 'Loading...' : 'Continue'}
+              </button>
+              <button type="button" onClick={() => { setForgotMode('none'); setLoginError(''); }} className="w-full text-center text-xs text-slate-400 hover:text-white transition-colors">Back to sign in</button>
+            </form>
+          ) : forgotMode === "answer" ? (
+            <form
+              className="space-y-4"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setLoginError("");
+                if (!forgotAnswer.trim()) { setLoginError("Security answer is required"); return; }
                 setForgotBusy(true);
                 try {
                   const res = await fetch('/api/admin/reset-password', {
@@ -583,15 +607,13 @@ export default function AdminDashboard() {
               }}
             >
               <p className="text-white text-sm font-semibold text-center">Reset Password</p>
-              {!forgotQuestion && <p className="text-amber-400 text-xs text-center">Recovery is not configured for this account. Contact the site owner.</p>}
-              {forgotQuestion && <p className="text-slate-300 text-xs text-center">{forgotQuestion}</p>}
-              <input type="text" value={forgotUser} onChange={(e) => setForgotUser(e.target.value)} placeholder="Username" autoComplete="username" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60" />
-              <input type="text" value={forgotAnswer} onChange={(e) => setForgotAnswer(e.target.value)} placeholder="Security answer" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60" />
+              <p className="text-slate-300 text-xs text-center">{forgotQuestion}</p>
+              <input type="text" value={forgotAnswer} onChange={(e) => setForgotAnswer(e.target.value)} placeholder="Security answer" autoFocus className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60" />
               {loginError && <p className="text-red-400 text-xs">{loginError}</p>}
-              <button type="submit" disabled={forgotBusy || !forgotQuestion} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors">
+              <button type="submit" disabled={forgotBusy} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors">
                 {forgotBusy ? 'Verifying...' : 'Verify & Continue'}
               </button>
-              <button type="button" onClick={() => { setForgotMode('none'); setLoginError(''); }} className="w-full text-center text-xs text-slate-400 hover:text-white transition-colors">Back to sign in</button>
+              <button type="button" onClick={() => { setForgotMode('lookup'); setLoginError(''); }} className="w-full text-center text-xs text-slate-400 hover:text-white transition-colors">Back</button>
             </form>
           ) : (
             <form
@@ -626,7 +648,7 @@ export default function AdminDashboard() {
               <button type="submit" disabled={forgotBusy} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors">
                 {forgotBusy ? 'Updating...' : 'Update Password'}
               </button>
-              <button type="button" onClick={() => { setForgotMode('question'); setLoginError(''); }} className="w-full text-center text-xs text-slate-400 hover:text-white transition-colors">Back</button>
+              <button type="button" onClick={() => { setForgotMode('answer'); setLoginError(''); }} className="w-full text-center text-xs text-slate-400 hover:text-white transition-colors">Back</button>
             </form>
           )}
         </motion.div>
