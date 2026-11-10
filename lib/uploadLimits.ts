@@ -9,6 +9,16 @@ export const UPLOAD_LIMITS = {
 
 export type UploadLimitKind = keyof typeof UPLOAD_LIMITS;
 
+// Clamp a limit to the database's max_allowed_packet (bytes).
+// Reserves 1 MB of headroom for packet overhead; falls back to the base limit
+// when the packet size is unknown (Infinity) or too small to be useful.
+export function clampUploadLimit(kind: UploadLimitKind, maxAllowedPacketBytes: number): number {
+  const base = UPLOAD_LIMITS[kind];
+  if (!Number.isFinite(maxAllowedPacketBytes)) return base;
+  const clamped = maxAllowedPacketBytes - 1024 * 1024;
+  return Math.min(base, Math.max(clamped, 64 * 1024));
+}
+
 export function formatLimit(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${bytes / (1024 * 1024)} MB`;
   return `${Math.round(bytes / 1024)} KB`;
