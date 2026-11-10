@@ -113,7 +113,7 @@ export default function Projects() {
                 <div className="relative h-44 bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
                   <ProjectThumbnail project={project} priority={i === 0} />
                   {/* Overlay on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4 gap-3">
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4 gap-2 sm:gap-3 flex-wrap px-2">
                     {project.github && (
                       <a
                         href={project.github}

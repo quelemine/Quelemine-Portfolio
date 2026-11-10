@@ -52,6 +52,7 @@ body {
   line-height: var(--line-height-normal);
   text-align: var(--text-align);
   overflow-x: hidden;
+  overflow-wrap: break-word;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
