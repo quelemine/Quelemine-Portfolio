@@ -31,7 +31,9 @@ export interface AdminSettings {
   colors: ColorTheme;
   typography: TypographySettings;
   siteContent: SiteContent;
-  security: {
+  // Legacy field — credentials now live in a separate store and must never
+  // appear in public settings responses.
+  security?: {
     username: string;
     password: string;
     securityQuestion: string;

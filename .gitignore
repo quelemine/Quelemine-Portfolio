@@ -36,6 +36,11 @@ yarn-error.log*
 # admin settings (contains sensitive data)
 data/adminSettings.json
 
+# runtime data (file-mode storage: settings backups, credentials, uploads)
+data/credentials.json
+data/uploads/
+data/.probe
+
 # user uploads
 public/uploads
 

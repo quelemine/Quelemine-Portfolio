@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: blob: https:",
               "connect-src 'self' https://api.github.com",
               "frame-src https://www.google.com https://sicmchurch.gt.tc",
-              "media-src 'none'",
+              "media-src 'self'",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self' https://mail.google.com https://wa.me",

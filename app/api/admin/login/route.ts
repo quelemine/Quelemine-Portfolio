@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 import crypto from "crypto";
-import type { AdminSettings } from "@/types/admin";
+import { readSettings } from "@/lib/settingsStore";
 import { createSessionToken, sessionCookieHeader } from "@/lib/adminAuth";
-
-const SETTINGS_FILE = path.join(process.cwd(), 'data', 'adminSettings.json');
 
 // Rate limiting: max 5 failed attempts per IP per 15 minutes
 const MAX_ATTEMPTS = 5;
@@ -45,63 +41,6 @@ function timingSafeEqualString(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
-// Helper function to read settings
-async function readSettings(): Promise<AdminSettings> {
-  try {
-    const data = await fs.readFile(SETTINGS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    return {
-      profile: {
-        name: "",
-        title: "",
-        subtitle: "",
-        description: "",
-        location: "",
-        availableForWork: true,
-        profileImage: ""
-      },
-      logo: { url: "" },
-      loginLogo: { url: "" },
-      cv: { url: "", filename: "", uploadDate: "" },
-      projects: [],
-      education: [],
-      colors: {
-        primary: "", secondary: "", accent: "",
-        background: "", text: "", cardBackground: ""
-      },
-      typography: {
-        fontFamily: "",
-        fontSize: { base: "", h1: "", h2: "", h3: "", small: "" },
-        lineHeight: { normal: "", relaxed: "" },
-        textAlign: "left",
-        fontWeight: { normal: "", medium: "", bold: "" }
-      },
-      siteContent: {
-        hero: {
-          badge: "", title: "", titleAccent: "", subtitle: "",
-          description: "", viewProjects: "", downloadCV: "",
-          contactMe: "", availableForWork: ""
-        },
-        about: {
-          sectionLabel: "", sectionTitle: "",
-          bio1: "", bio2: "", bio3: "", bio4: "",
-          tags: [], getInTouch: "", downloadCV: "", image: "",
-          highlights: {
-            international: { label: "", desc: "" },
-            education: { label: "", desc: "" },
-            stack: { label: "", desc: "" },
-            location: { label: "", desc: "" }
-          }
-        },
-        contact: { email: "", phone: "", address: "" },
-        social: { github: "", linkedin: "", twitter: "" }
-      },
-      security: { username: "admin", password: "", securityQuestion: "", securityAnswer: "" }
-    };
-  }
-}
-
 // POST - Verify username and password, set session cookie on success
 export async function POST(request: Request) {
   try {
@@ -123,8 +62,8 @@ export async function POST(request: Request) {
 
     const envPassword = process.env.ADMIN_PASSWORD || "";
     const settings = await readSettings();
-    const storedUsername = settings.security.username || "admin";
-    const storedPassword = settings.security.password || "";
+    const storedUsername = settings.security?.username || "admin";
+    const storedPassword = settings.security?.password || "";
 
     // Check username and password with timing-safe comparisons
     const isUsernameValid = timingSafeEqualString(username, storedUsername);

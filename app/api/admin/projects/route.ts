@@ -1,71 +1,11 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
-import type { AdminSettings, Project } from "@/types/admin";
+import type { Project } from "@/types/admin";
 import { requireAdmin } from "@/lib/adminAuth";
+import { readSettings, writeSettings } from "@/lib/settingsStore";
 
-const SETTINGS_FILE = path.join(process.cwd(), 'data', 'adminSettings.json');
-
-// Helper function to read settings
-async function readSettings(): Promise<AdminSettings> {
-  try {
-    const data = await fs.readFile(SETTINGS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    return {
-      profile: {
-        name: "",
-        title: "",
-        subtitle: "",
-        description: "",
-        location: "",
-        availableForWork: true,
-        profileImage: ""
-      },
-      logo: { url: "" },
-      loginLogo: { url: "" },
-      cv: { url: "", filename: "", uploadDate: "" },
-      projects: [],
-      education: [],
-      colors: {
-        primary: "", secondary: "", accent: "",
-        background: "", text: "", cardBackground: ""
-      },
-      typography: {
-        fontFamily: "",
-        fontSize: { base: "", h1: "", h2: "", h3: "", small: "" },
-        lineHeight: { normal: "", relaxed: "" },
-        textAlign: "left",
-        fontWeight: { normal: "", medium: "", bold: "" }
-      },
-      siteContent: {
-        hero: {
-          badge: "", title: "", titleAccent: "", subtitle: "",
-          description: "", viewProjects: "", downloadCV: "",
-          contactMe: "", availableForWork: ""
-        },
-        about: {
-          sectionLabel: "", sectionTitle: "",
-          bio1: "", bio2: "", bio3: "", bio4: "",
-          tags: [], getInTouch: "", downloadCV: "", image: "",
-          highlights: {
-            international: { label: "", desc: "" },
-            education: { label: "", desc: "" },
-            stack: { label: "", desc: "" },
-            location: { label: "", desc: "" }
-          }
-        },
-        contact: { email: "", phone: "", address: "" },
-        social: { github: "", linkedin: "", twitter: "" }
-      },
-      security: { username: "admin", password: "", securityQuestion: "", securityAnswer: "" }
-    };
-  }
-}
-
-// Helper function to write settings
-async function writeSettings(settings: AdminSettings): Promise<void> {
-  await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+function logError(error: unknown) {
+  const err = error as NodeJS.ErrnoException;
+  console.error("projects failed:", err?.code, err?.message);
 }
 
 // GET - Fetch all projects
@@ -77,7 +17,8 @@ export async function GET(request: Request) {
     const settings = await readSettings();
     return NextResponse.json(settings.projects);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });
+    logError(error);
+    return NextResponse.json({ error: "Failed to fetch projects" }, { status: 500 });
   }
 }
 
@@ -89,17 +30,18 @@ export async function POST(request: Request) {
 
     const project = await request.json();
     const settings = await readSettings();
-    
+
     // Generate new ID
     const maxId = settings.projects.reduce((max, p) => Math.max(max, p.id), 0);
     project.id = maxId + 1;
-    
+
     settings.projects.push(project);
     await writeSettings(settings);
-    
+
     return NextResponse.json(project);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to add project' }, { status: 500 });
+    logError(error);
+    return NextResponse.json({ error: "Failed to add project" }, { status: 500 });
   }
 }
 
@@ -111,18 +53,19 @@ export async function PUT(request: Request) {
 
     const updatedProject = await request.json();
     const settings = await readSettings();
-    
-    const index = settings.projects.findIndex(p => p.id === updatedProject.id);
+
+    const index = settings.projects.findIndex((p: Project) => p.id === updatedProject.id);
     if (index === -1) {
-      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
-    
+
     settings.projects[index] = updatedProject;
     await writeSettings(settings);
-    
+
     return NextResponse.json(updatedProject);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update project' }, { status: 500 });
+    logError(error);
+    return NextResponse.json({ error: "Failed to update project" }, { status: 500 });
   }
 }
 
@@ -133,15 +76,16 @@ export async function DELETE(request: Request) {
     if (denied) return denied;
 
     const { searchParams } = new URL(request.url);
-    const id = parseInt(searchParams.get('id') || '0');
-    
+    const id = parseInt(searchParams.get("id") || "0");
+
     const settings = await readSettings();
-    settings.projects = settings.projects.filter(p => p.id !== id);
-    
+    settings.projects = settings.projects.filter((p: Project) => p.id !== id);
+
     await writeSettings(settings);
-    
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 });
+    logError(error);
+    return NextResponse.json({ error: "Failed to delete project" }, { status: 500 });
   }
 }

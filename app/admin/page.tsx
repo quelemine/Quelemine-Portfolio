@@ -612,6 +612,15 @@ export default function AdminDashboard() {
 
 // Dashboard Tab
 function DashboardTab({ sessions }: { sessions: ChatSession[] }) {
+  const [health, setHealth] = useState<{ storage: string; writable: boolean } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/health')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data) setHealth(data); })
+      .catch(() => {});
+  }, []);
+
   const totalMessages = sessions.reduce((acc, s) => acc + s.messages.length, 0);
   const recentCount = sessions.filter((s) => Date.now() - new Date(s.lastActiveAt).getTime() < 86400000).length;
   const errorCount = sessions.reduce((acc, s) => acc + s.messages.filter((m) => m.status === "error").length, 0);
@@ -659,6 +668,32 @@ function DashboardTab({ sessions }: { sessions: ChatSession[] }) {
             <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
           </div>
         ))}
+      </div>
+
+      {/* Storage status */}
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-900 mb-3">Storage Status</h3>
+        {!health ? (
+          <p className="text-slate-400 text-sm">Checking storage...</p>
+        ) : !health.writable ? (
+          <div className="flex items-center gap-3">
+            <span className="w-3 h-3 rounded-full bg-red-500 flex-shrink-0" />
+            <p className="text-sm font-medium text-red-600">Cannot save on this server</p>
+          </div>
+        ) : health.storage === "mysql" ? (
+          <div className="flex items-center gap-3">
+            <span className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0" />
+            <p className="text-sm font-medium text-slate-900">Saved to database</p>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <span className="w-3 h-3 rounded-full bg-amber-500 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-slate-900">Saved to local files</p>
+              <p className="text-xs text-slate-500">Changes may be lost on redeploy.</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
