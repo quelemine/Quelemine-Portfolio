@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import type { Project } from "@/types/admin";
 import { requireAdmin } from "@/lib/adminAuth";
 import { readSettings, writeSettings } from "@/lib/settingsStore";
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
 
     settings.projects.push(project);
     await writeSettings(settings);
+    revalidatePath("/");
 
     return NextResponse.json(project);
   } catch (error) {
@@ -61,6 +63,7 @@ export async function PUT(request: Request) {
 
     settings.projects[index] = updatedProject;
     await writeSettings(settings);
+    revalidatePath("/");
 
     return NextResponse.json(updatedProject);
   } catch (error) {
@@ -82,6 +85,7 @@ export async function DELETE(request: Request) {
     settings.projects = settings.projects.filter((p: Project) => p.id !== id);
 
     await writeSettings(settings);
+    revalidatePath("/");
 
     return NextResponse.json({ success: true });
   } catch (error) {

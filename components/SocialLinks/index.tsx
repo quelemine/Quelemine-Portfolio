@@ -5,12 +5,20 @@ import { useRef } from "react";
 import { Globe } from "lucide-react";
 import { FaLinkedin, FaGithub, FaFacebook, FaTiktok, FaInstagram, FaXTwitter } from "react-icons/fa6";
 import { socialLinks } from "@/data/socialLinks";
+import { useSettings } from "@/context/SettingsContext";
 
 const iconMap: Record<string, React.ElementType> = { Linkedin: FaLinkedin, Github: FaGithub, Facebook: FaFacebook, Music2: FaTiktok, Instagram: FaInstagram, Twitter: FaXTwitter, Globe };
 
 export default function SocialLinks() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
+  const { settings } = useSettings();
+  const social = settings?.siteContent?.social;
+  const urlOverrides: Record<string, string | undefined> = {
+    github: social?.github,
+    linkedin: social?.linkedin,
+    twitter: social?.twitter,
+  };
 
   return (
     <section id="social" className="section-padding relative overflow-x-hidden" ref={ref}>
@@ -34,7 +42,7 @@ export default function SocialLinks() {
             return (
               <motion.a
                 key={link.id}
-                href={link.url}
+                href={urlOverrides[link.id] || link.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 initial={{ opacity: 0, scale: 0.8 }}

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import type { AdminSettings } from "@/types/admin";
 import { requireAdmin } from "@/lib/adminAuth";
 import { readSettings, writeSettings, deepMerge } from "@/lib/settingsStore";
@@ -17,7 +18,9 @@ function logError(context: string, error: unknown) {
 export async function GET() {
   try {
     const settings = await readSettings();
-    return NextResponse.json(stripSecurity(settings));
+    return NextResponse.json(stripSecurity(settings), {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (error) {
     logError("settings read", error);
     return NextResponse.json({ error: "Failed to load settings" }, { status: 500 });
@@ -42,6 +45,7 @@ export async function PUT(request: Request) {
     updatedSettings.security = currentSettings.security;
 
     await writeSettings(updatedSettings);
+    revalidatePath("/");
 
     return NextResponse.json(stripSecurity(updatedSettings));
   } catch (error) {

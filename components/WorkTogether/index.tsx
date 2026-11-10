@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Mail, MessageCircle, Download } from "lucide-react";
 import { FaWhatsapp, FaLinkedin } from "react-icons/fa6";
+import { useSettings } from "@/context/SettingsContext";
 
 const services = [
   "Full Stack Web Applications",
@@ -16,6 +17,9 @@ const services = [
 export default function WorkTogether() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
+  const { settings, cvUrl } = useSettings();
+  const social = settings?.siteContent?.social;
+  const linkedinUrl = social?.linkedin || "https://www.linkedin.com/in/isaac-l-quelemine-873633132";
 
   return (
     <section id="work-together" className="section-padding relative bg-[#0B1F3A] overflow-x-hidden" ref={ref}>
@@ -91,7 +95,7 @@ export default function WorkTogether() {
             <FaWhatsapp size={16} /> WhatsApp
           </a>
           <a
-            href="https://www.linkedin.com/in/isaac-l-quelemine-873633132"
+            href={linkedinUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-outline-white inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold"
@@ -99,7 +103,7 @@ export default function WorkTogether() {
             <FaLinkedin size={16} /> LinkedIn
           </a>
           <a
-            href="/resume.pdf"
+            href={cvUrl}
             download
             className="btn-outline-white inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold"
           >

@@ -3,10 +3,25 @@ import { useState, useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Send, Mail, MapPin, CheckCircle, Loader2, Phone, X } from "lucide-react";
 import { FaLinkedin, FaGithub, FaWhatsapp } from "react-icons/fa6";
+import { useSettings } from "@/context/SettingsContext";
+
+const BUILTIN_EMAIL = "quelemineisaacl@gmail.com";
+const BUILTIN_PHONE = "+250 793 148 624";
+const BUILTIN_ADDRESS = "Kigali, Rwanda";
+const BUILTIN_LINKEDIN = "https://www.linkedin.com/in/isaac-l-quelemine-873633132";
+const BUILTIN_GITHUB = "https://github.com/quelemine";
 
 export default function Contact() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
+  const { settings, tx } = useSettings();
+  const contact = settings?.siteContent?.contact;
+  const social = settings?.siteContent?.social;
+  const email = tx(contact?.email, BUILTIN_EMAIL);
+  const phone = tx(contact?.phone, BUILTIN_PHONE);
+  const address = tx(contact?.address, BUILTIN_ADDRESS);
+  const linkedinUrl = social?.linkedin || BUILTIN_LINKEDIN;
+  const githubUrl = social?.github || BUILTIN_GITHUB;
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
 
@@ -25,7 +40,7 @@ export default function Contact() {
     e.preventDefault();
     setStatus("sending");
     // Open Gmail compose with pre-filled fields as the real send mechanism
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&to=quelemineisaacl@gmail.com&su=${encodeURIComponent(form.subject)}&body=${encodeURIComponent(`Name: ${form.name}\nEmail: ${form.email}\n\n${form.message}`)}`;
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(email)}&su=${encodeURIComponent(form.subject)}&body=${encodeURIComponent(`Name: ${form.name}\nEmail: ${form.email}\n\n${form.message}`)}`;
     window.open(gmailUrl, "_blank");
     setStatus("sent");
     setForm({ name: "", email: "", subject: "", message: "" });
@@ -72,8 +87,8 @@ export default function Contact() {
                 {/* Card 1 */}
                 <div className="rounded-xl border border-slate-100 bg-white p-4 space-y-4 shadow-sm">
                   {[
-                    { icon: Mail,       label: "Email",           value: "quelemineisaacl@gmail.com", href: "mailto:quelemineisaacl@gmail.com",                                                         iconColor: "text-blue-600",  iconBg: "bg-blue-50" },
-                    { icon: Phone,      label: "Phone (Rwanda)",  value: "+250 793 148 624",          href: "tel:+250793148624",                                                                           iconColor: "text-blue-600",  iconBg: "bg-blue-50" },
+                    { icon: Mail,       label: "Email",           value: email,                 href: `mailto:${email}`,                                                                                       iconColor: "text-blue-600",  iconBg: "bg-blue-50" },
+                    { icon: Phone,      label: "Phone (Rwanda)",  value: phone,                 href: `tel:${phone.replace(/[^+\d]/g, "")}`,                                                           iconColor: "text-blue-600",  iconBg: "bg-blue-50" },
                     { icon: FaWhatsapp, label: "WhatsApp (LR)",   value: "+231 880 857 969",          href: "https://wa.me/231880857969?text=Hi%20Isaac!%20I%20found%20you%20through%20your%20portfolio.", iconColor: "text-green-600", iconBg: "bg-green-50" },
                   ].map((item) => (
                     <div key={item.label} className="flex items-center gap-3">
@@ -95,8 +110,8 @@ export default function Contact() {
                 <div className="rounded-xl border border-slate-100 bg-white p-4 space-y-4 shadow-sm">
                   {[
                     { icon: FaWhatsapp, label: "WhatsApp (TR)", value: "+90 533 872 1736",    href: "https://wa.me/905338721736?text=Hi%20Isaac!%20I%20found%20you%20through%20your%20portfolio.", iconColor: "text-green-600",  iconBg: "bg-green-50" },
-                    { icon: FaLinkedin, label: "LinkedIn",      value: "Isaac L. Quelemine",   href: "https://www.linkedin.com/in/isaac-l-quelemine-873633132",                                     iconColor: "text-blue-700",   iconBg: "bg-blue-50" },
-                    { icon: FaGithub,   label: "GitHub",        value: "quelemine",           href: "https://github.com/quelemine",                                                               iconColor: "text-slate-700",  iconBg: "bg-slate-100" },
+                    { icon: FaLinkedin, label: "LinkedIn",      value: "Isaac L. Quelemine",   href: linkedinUrl,                                                                                          iconColor: "text-blue-700",   iconBg: "bg-blue-50" },
+                    { icon: FaGithub,   label: "GitHub",        value: "quelemine",           href: githubUrl,                                                                                            iconColor: "text-slate-700",  iconBg: "bg-slate-100" },
                   ].map((item) => (
                     <div key={item.label} className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-lg ${item.iconBg} flex items-center justify-center flex-shrink-0`}>
@@ -118,7 +133,7 @@ export default function Contact() {
               <div className="rounded-xl overflow-hidden border border-slate-100 shadow-sm">
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-100">
                   <MapPin size={14} className="text-indigo-600 flex-shrink-0" />
-                  <span className="text-slate-700 text-xs font-semibold">Kigali, Rwanda</span>
+                  <span className="text-slate-700 text-xs font-semibold">{address}</span>
                 </div>
                 <iframe
                   title="Kigali, Rwanda"

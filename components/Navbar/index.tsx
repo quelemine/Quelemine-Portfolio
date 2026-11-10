@@ -4,27 +4,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import { useTranslation, LANGUAGES, type LocaleCode } from "@/context/LanguageContext";
+import { useSettings } from "@/context/SettingsContext";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [active, setActive] = useState("");
   const [langOpen, setLangOpen] = useState(false);
-  const [logoUrl, setLogoUrl] = useState("/images/profile/isaac-profile-four.jpeg");
   const langRef = useRef<HTMLDivElement>(null);
   const { t, locale, setLocale } = useTranslation();
-
-  useEffect(() => {
-    // Fetch logo from settings
-    fetch('/api/admin/settings')
-      .then(res => res.json())
-      .then(data => {
-        if (data.logo?.url) {
-          setLogoUrl(data.logo.url);
-        }
-      })
-      .catch(err => console.error('Failed to fetch logo:', err));
-  }, []);
+  const { settings } = useSettings();
+  const logoUrl = settings?.logo?.url || "/images/profile/isaac-profile-four.jpeg";
 
   const navLinks = [
     { href: "#about",     label: t.nav.about },

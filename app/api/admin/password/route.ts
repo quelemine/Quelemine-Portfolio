@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import crypto from "crypto";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getCredentials, setCredentials, verifyStoredSecret } from "@/lib/credentials";
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
 
     if (updates.username || updates.password) {
       await setCredentials(updates);
+      revalidatePath("/");
     }
 
     return NextResponse.json({ success: true });

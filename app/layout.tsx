@@ -3,6 +3,7 @@ import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import { IMAGES, PROFILE_ALT } from "@/lib/images";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { SettingsProvider } from "@/context/SettingsContext";
 import { ChatProvider } from "@/context/ChatContext";
 import TypographyProvider from "@/components/TypographyProvider";
 
@@ -71,9 +72,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${inter.variable} ${manrope.variable} antialiased`}>
-        <TypographyProvider>
-          <LanguageProvider><ChatProvider>{children}</ChatProvider></LanguageProvider>
-        </TypographyProvider>
+        <LanguageProvider>
+          <SettingsProvider>
+            <TypographyProvider>
+              <ChatProvider>{children}</ChatProvider>
+            </TypographyProvider>
+          </SettingsProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

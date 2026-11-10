@@ -4,12 +4,15 @@ import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { GraduationCap, BookOpen, Award, MapPin, Calendar, CheckCircle, Clock } from "lucide-react";
 import { educationData } from "@/data/education";
+import { useSettings } from "@/context/SettingsContext";
 
 const iconMap = { GraduationCap, BookOpen, Award };
 
 export default function Education() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
+  const { settings } = useSettings();
+  const items = settings?.education?.length ? settings.education : educationData;
 
   return (
     <section id="education" className="section-padding relative section-alt overflow-x-hidden" ref={ref}>
@@ -34,7 +37,7 @@ export default function Education() {
           <div className="absolute left-8 top-0 bottom-0 w-0.5 timeline-line hidden md:block" />
 
           <div className="space-y-8">
-            {educationData.map((edu, i) => {
+            {items.map((edu, i) => {
               const Icon = iconMap[edu.icon as keyof typeof iconMap] || GraduationCap;
               return (
                 <motion.div

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import type { Education } from "@/types/admin";
 import { requireAdmin } from "@/lib/adminAuth";
 import { readSettings, writeSettings } from "@/lib/settingsStore";
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
 
     settings.education.push(education);
     await writeSettings(settings);
+    revalidatePath("/");
 
     return NextResponse.json(education);
   } catch (error) {
@@ -61,6 +63,7 @@ export async function PUT(request: Request) {
 
     settings.education[index] = updatedEducation;
     await writeSettings(settings);
+    revalidatePath("/");
 
     return NextResponse.json(updatedEducation);
   } catch (error) {
@@ -82,6 +85,7 @@ export async function DELETE(request: Request) {
     settings.education = settings.education.filter((e: Education) => e.id !== id);
 
     await writeSettings(settings);
+    revalidatePath("/");
 
     return NextResponse.json({ success: true });
   } catch (error) {

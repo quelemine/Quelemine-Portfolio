@@ -3,23 +3,13 @@ import { motion } from "framer-motion";
 import { Download, Mail, FolderOpen, MapPin } from "lucide-react";
 import Image from "next/image";
 import { useTranslation } from "@/context/LanguageContext";
-import { useState, useEffect } from "react";
+import { useSettings } from "@/context/SettingsContext";
 
 export default function Hero() {
   const { t } = useTranslation();
-  const [profileImage, setProfileImage] = useState("/images/profile/isaac-profile.jpg");
-
-  useEffect(() => {
-    // Fetch profile image from settings
-    fetch('/api/admin/settings')
-      .then(res => res.json())
-      .then(data => {
-        if (data.profile?.profileImage) {
-          setProfileImage(data.profile.profileImage);
-        }
-      })
-      .catch(err => console.error('Failed to fetch profile image:', err));
-  }, []);
+  const { settings, tx, cvUrl } = useSettings();
+  const hero = settings?.siteContent?.hero;
+  const profileImage = settings?.profile?.profileImage || "/images/profile/isaac-profile.jpg";
   return (
     <section
       id="home"
@@ -46,7 +36,7 @@ export default function Hero() {
             >
               <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
               <MapPin size={13} className="text-blue-400" />
-              {t.hero.badge}
+              {tx(hero?.badge, t.hero.badge)}
             </motion.div>
 
             {/* Name */}
@@ -56,8 +46,8 @@ export default function Hero() {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="text-5xl sm:text-6xl font-bold text-white mb-3 leading-[1.1] tracking-tight"
             >
-              <span className="text-white">{t.hero.title}</span>{" "}
-              <span className="gradient-text-hero">{t.hero.titleAccent}</span>
+              <span className="text-white">{tx(hero?.title, t.hero.title)}</span>{" "}
+              <span className="gradient-text-hero">{tx(hero?.titleAccent, t.hero.titleAccent)}</span>
             </motion.h1>
 
             {/* Title */}
@@ -67,7 +57,7 @@ export default function Hero() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="text-blue-400 font-medium text-lg mb-6 tracking-wide"
             >
-              {t.hero.subtitle}
+              {tx(hero?.subtitle, t.hero.subtitle)}
             </motion.p>
 
             {/* Description */}
@@ -77,7 +67,7 @@ export default function Hero() {
               transition={{ duration: 0.5, delay: 0.3 }}
               className="text-slate-300 text-base leading-relaxed mb-10 max-w-lg mx-auto lg:mx-0"
             >
-              {t.hero.description}
+              {tx(hero?.description, t.hero.description)}
             </motion.p>
 
             {/* CTA buttons */}
@@ -92,22 +82,22 @@ export default function Hero() {
                 className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold"
               >
                 <FolderOpen size={16} />
-                {t.hero.viewProjects}
+                {tx(hero?.viewProjects, t.hero.viewProjects)}
               </a>
               <a
-                href="/resume.pdf"
+                href={cvUrl}
                 download
                 className="btn-outline-white inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold"
               >
                 <Download size={16} />
-                {t.hero.downloadCV}
+                {tx(hero?.downloadCV, t.hero.downloadCV)}
               </a>
               <a
                 href="#contact"
                 className="btn-outline-white inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold"
               >
                 <Mail size={16} />
-                {t.hero.contactMe}
+                {tx(hero?.contactMe, t.hero.contactMe)}
               </a>
             </motion.div>
           </div>
@@ -135,7 +125,7 @@ export default function Hero() {
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               >
                 <span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block mr-1.5 align-middle" />
-                {t.hero.availableForWork}
+                {tx(hero?.availableForWork, t.hero.availableForWork)}
               </motion.div>
             </div>
           </motion.div>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import crypto from "crypto";
 import path from "path";
 import { requireAdmin } from "@/lib/adminAuth";
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
       size: bytes.length,
       data: bytes,
     });
+    revalidatePath("/");
 
     return NextResponse.json({ url: `/api/files/${id}`, filename: file.name });
   } catch (error) {

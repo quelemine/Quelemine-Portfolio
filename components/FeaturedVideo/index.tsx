@@ -1,29 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Play } from "lucide-react";
-
-type FeaturedVideoData = {
-  url: string;
-  title?: string;
-  description?: string;
-};
+import { useSettings } from "@/context/SettingsContext";
 
 export default function FeaturedVideo() {
-  const [video, setVideo] = useState<FeaturedVideoData | null>(null);
+  const { settings } = useSettings();
+  const video = settings?.featuredVideo;
 
-  useEffect(() => {
-    fetch('/api/admin/settings')
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.featuredVideo?.url) {
-          setVideo(data.featuredVideo);
-        }
-      })
-      .catch((error) => console.error('Failed to load featured video:', error));
-  }, []);
-
-  if (!video) return null;
+  if (!video?.url) return null;
 
   return (
     <section id="video" className="section-padding bg-slate-50">

@@ -10,7 +10,67 @@ import {
 import { getAllSessions, clearAllSessions, deleteSession, type ChatSession } from "@/lib/chatLogger";
 import { UPLOAD_LIMITS, formatLimit } from "@/lib/uploadLimits";
 import type { AdminSettings, Project, Education } from "@/types/admin";
+import en from "@/locales/en";
+import { projects as builtinProjectsData } from "@/data/projects";
+import { educationData as builtinEducationData } from "@/data/education";
 
+// Effective English values the public site shows when no admin override exists.
+// Used to prefill admin forms so editing starts from what visitors see.
+const BUILTIN_SITE_CONTENT = {
+  hero: { ...en.hero },
+  about: {
+    sectionLabel: en.about.sectionLabel,
+    sectionTitle: en.about.sectionTitle,
+    bio1: "I am a Liberian Junior Software Engineer currently based in Kigali, Rwanda. I am passionate about building scalable software solutions and solving real-world problems through technology.",
+    bio2: en.about.bio2,
+    bio3: "I specialize in full-stack development, working across the entire stack with React.js on the frontend, Java and Spring Boot on the backend, and MySQL and PostgreSQL for data management. I am committed to writing clean, maintainable code that delivers real value.",
+    bio4: en.about.bio4,
+    tags: en.about.tags,
+    getInTouch: en.about.getInTouch,
+    downloadCV: en.about.downloadCV,
+    image: "",
+    highlights: en.about.highlights,
+  },
+  contact: {
+    email: "quelemineisaacl@gmail.com",
+    phone: "+250 793 148 624",
+    address: "Kigali, Rwanda",
+  },
+  social: {
+    github: "https://github.com/quelemine",
+    linkedin: "https://www.linkedin.com/in/isaac-l-quelemine-873633132",
+    twitter: "https://x.com/",
+  },
+};
+
+const BUILTIN_PROFILE = {
+  name: "Isaac L. Quelemine",
+  title: "Quelemine",
+  subtitle: "Junior Software Engineer · Full Stack Developer",
+  description: "Building modern web applications and software solutions with strong foundations in frontend development, backend engineering, databases, and software architecture.",
+  location: "Kigali, Rwanda",
+  availableForWork: true,
+  profileImage: "/images/profile/isaac-profile.jpg",
+};
+
+const BUILTIN_PROJECTS = builtinProjectsData.map((p) => ({ ...p, finished: true })) as unknown as Project[];
+const BUILTIN_EDUCATION = builtinEducationData as unknown as Education[];
+
+// Deep-merge admin values over built-in defaults: non-empty admin strings,
+// non-empty arrays and objects win; everything else falls back to built-in.
+function mergeEffective<T>(admin: any, builtin: T): T {
+  if (admin === undefined || admin === null) return builtin;
+  if (typeof admin === "string") return (admin.trim() ? admin : builtin) as T;
+  if (Array.isArray(admin)) return (admin.length ? admin : builtin) as T;
+  if (typeof admin === "object" && builtin !== null && typeof builtin === "object" && !Array.isArray(builtin)) {
+    const out: any = { ...(builtin as any) };
+    for (const key of Object.keys(admin)) {
+      out[key] = mergeEffective(admin[key], (builtin as any)?.[key]);
+    }
+    return out;
+  }
+  return admin as T;
+}
 
 type TabType = 'dashboard' | 'profile' | 'cv' | 'videos' | 'password' | 'projects' | 'education' | 'colors' | 'content' | 'logo' | 'typography' | 'chatlogs';
 
@@ -541,6 +601,7 @@ export default function AdminDashboard() {
                 setEditingProject={setEditingProject}
                 onSaveProject={handleProjectSave}
                 onDeleteProject={handleProjectDelete}
+                onLoadSiteItems={() => handleSaveSettings({ projects: BUILTIN_PROJECTS })}
               />
             )}
             {activeTab === 'education' && (
@@ -551,6 +612,7 @@ export default function AdminDashboard() {
                 setEditingEducation={setEditingEducation}
                 onSaveEducation={handleEducationSave}
                 onDeleteEducation={handleEducationDelete}
+                onLoadSiteItems={() => handleSaveSettings({ education: BUILTIN_EDUCATION })}
               />
             )}
             {activeTab === 'colors' && (
@@ -818,14 +880,14 @@ function ChatLogsTab({ sessions, onClearAll, onDeleteSession }: { sessions: Chat
 
 // Profile Tab
 function ProfileTab({ settings, onFileUpload, onSave, loading }: any) {
-  const [profileData, setProfileData] = useState(settings?.profile || {});
+  const [profileData, setProfileData] = useState(() => mergeEffective(settings?.profile, BUILTIN_PROFILE));
   const [aboutImageData, setAboutImageData] = useState(settings?.siteContent?.about?.image || '');
   const profileInitialized = useRef(false);
 
   // Only hydrate the form once so later settings reloads don't wipe unsaved edits
   useEffect(() => {
     if (!profileInitialized.current && settings?.profile) {
-      setProfileData(settings.profile);
+      setProfileData(mergeEffective(settings.profile, BUILTIN_PROFILE));
       profileInitialized.current = true;
     }
     if (settings?.siteContent?.about?.image) {
@@ -1705,7 +1767,9 @@ function PasswordTab({ onChangePassword }: any) {
 }
 
 // Projects Tab
-function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProject, onDeleteProject }: any) {
+function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProject, onDeleteProject, onLoadSiteItems }: any) {
+  const isSiteDefault = !settings?.projects?.length;
+  const items: Project[] = isSiteDefault ? BUILTIN_PROJECTS : settings.projects;
   const emptyProject: Partial<Project> = {
     title: '',
     description: '',
@@ -1886,14 +1950,27 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
       </div>
 
       {/* Projects List */}
+      {isSiteDefault && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-sm text-blue-800">Showing the projects currently on the public site. Load them to edit or delete.</p>
+          <button
+            onClick={onLoadSiteItems}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap"
+          >
+            <Plus size={16} />
+            Load current site items
+          </button>
+        </div>
+      )}
       <div className="space-y-3">
-        {settings.projects?.map((project: Project) => (
+        {items.map((project: Project) => (
           <div key={project.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="text-lg font-semibold text-slate-900">{project.title}</h3>
                   {project.featured && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">Featured</span>}
+                  {isSiteDefault && <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">Site default</span>}
                   {project.finished ? (
                     <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">Finished</span>
                   ) : (
@@ -1909,6 +1986,7 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
                   ))}
                 </div>
               </div>
+              {!isSiteDefault && (
               <div className="flex gap-2">
                 <button
                   onClick={() => setEditingProject(project)}
@@ -1923,6 +2001,7 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
                   <Trash2 size={16} />
                 </button>
               </div>
+              )}
             </div>
           </div>
         ))}
@@ -1932,7 +2011,9 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
 }
 
 // Education Tab
-function EducationTab({ settings, editingEducation, setEditingEducation, onSaveEducation, onDeleteEducation }: any) {
+function EducationTab({ settings, editingEducation, setEditingEducation, onSaveEducation, onDeleteEducation, onLoadSiteItems }: any) {
+  const isSiteDefault = !settings?.education?.length;
+  const items: Education[] = isSiteDefault ? BUILTIN_EDUCATION : settings.education;
   const emptyEducation: Partial<Education> = {
     degree: '',
     institution: '',
@@ -2084,13 +2165,26 @@ function EducationTab({ settings, editingEducation, setEditingEducation, onSaveE
       </div>
 
       {/* Education List */}
+      {isSiteDefault && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-sm text-blue-800">Showing the education entries currently on the public site. Load them to edit or delete.</p>
+          <button
+            onClick={onLoadSiteItems}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap"
+          >
+            <Plus size={16} />
+            Load current site items
+          </button>
+        </div>
+      )}
       <div className="space-y-3">
-        {settings.education?.map((edu: Education) => (
+        {items.map((edu: Education) => (
           <div key={edu.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="text-lg font-semibold text-slate-900">{edu.degree}</h3>
+                  {isSiteDefault && <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">Site default</span>}
                   <span className={`px-2 py-0.5 text-xs rounded-full ${
                     edu.status === 'Completed' 
                       ? 'bg-green-100 text-green-700' 
@@ -2103,6 +2197,7 @@ function EducationTab({ settings, editingEducation, setEditingEducation, onSaveE
                 <p className="text-sm text-slate-600 mb-2">{edu.location} · {edu.period}</p>
                 <p className="text-sm text-slate-500 line-clamp-2">{edu.description}</p>
               </div>
+              {!isSiteDefault && (
               <div className="flex gap-2">
                 <button
                   onClick={() => setEditingEducation(edu)}
@@ -2117,6 +2212,7 @@ function EducationTab({ settings, editingEducation, setEditingEducation, onSaveE
                   <Trash2 size={16} />
                 </button>
               </div>
+              )}
             </div>
           </div>
         ))}
@@ -2216,11 +2312,11 @@ function ColorsTab({ settings, onSave, loading }: any) {
 
 // Content Tab
 function ContentTab({ settings, onSave, onFileUpload, loading }: any) {
-  const [content, setContent] = useState(settings?.siteContent || {});
+  const [content, setContent] = useState(() => mergeEffective(settings?.siteContent, BUILTIN_SITE_CONTENT));
 
   useEffect(() => {
     if (settings?.siteContent) {
-      setContent(settings.siteContent);
+      setContent(mergeEffective(settings.siteContent, BUILTIN_SITE_CONTENT));
     }
   }, [settings]);
 

@@ -4,7 +4,8 @@ import { motion, AnimatePresence, useInView } from "framer-motion";
 import { ExternalLink, FolderOpen, Monitor, MessageSquare } from "lucide-react";
 import { FaGithub } from "react-icons/fa6";
 import Image from "next/image";
-import { projects, projectFilters, type ProjectCategory } from "@/data/projects";
+import { projects, projectFilters, type Project, type ProjectCategory } from "@/data/projects";
+import { useSettings } from "@/context/SettingsContext";
 import SicmIframeModal from "@/components/UI/SicmIframeModal";
 import { useChatContext } from "@/context/ChatContext";
 
@@ -39,8 +40,12 @@ export default function Projects() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
   const { openWithMessage } = useChatContext();
+  const { settings } = useSettings();
+  const allProjects: Project[] = settings?.projects?.length
+    ? (settings.projects as unknown as Project[])
+    : projects;
 
-  const filtered = active === "all" ? projects : projects.filter((p) => p.category === active);
+  const filtered = active === "all" ? allProjects : allProjects.filter((p) => p.category === active);
 
   const isSicm = (id: number) => id === 7;
 
