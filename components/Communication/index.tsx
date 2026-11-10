@@ -3,6 +3,9 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { MessageSquare, Users, Globe, Mic, PenTool, Handshake, Lightbulb, HeartHandshake } from "lucide-react";
+import { useSettings } from "@/context/SettingsContext";
+
+const iconMap: Record<string, React.ElementType> = { MessageSquare, Users, Globe, Mic, PenTool, Handshake, Lightbulb, HeartHandshake };
 
 const skills = [
   { icon: MessageSquare, title: "Verbal Communication", desc: "Clear and confident verbal communication in professional and technical settings.", color: "text-blue-400", bg: "bg-blue-500/10" },
@@ -18,6 +21,12 @@ const skills = [
 export default function Communication() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
+  const { settings } = useSettings();
+  const adminItems = settings?.communication?.filter((c) => c.enabled !== false)
+    .sort((a, b) => a.order - b.order);
+  const items = adminItems?.length
+    ? adminItems.map((c) => ({ ...c, icon: iconMap[c.icon] || MessageSquare }))
+    : skills;
 
   return (
     <section id="communication" className="section-padding relative section-alt overflow-x-hidden" ref={ref}>
@@ -41,7 +50,7 @@ export default function Communication() {
         </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {skills.map((skill, i) => (
+          {items.map((skill, i) => (
             <motion.div
               key={skill.title}
               initial={{ opacity: 0, y: 30 }}

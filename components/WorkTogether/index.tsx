@@ -17,8 +17,17 @@ const services = [
 export default function WorkTogether() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
-  const { settings, cvUrl } = useSettings();
+  const { settings, tx, cvUrl } = useSettings();
   const social = settings?.siteContent?.social;
+  const wt = settings?.workTogether;
+  const adminServices = wt?.services?.filter((s) => s.enabled !== false)
+    .sort((a, b) => a.order - b.order);
+  const serviceList = adminServices?.length ? adminServices.map((s) => s.title) : services;
+  const wa = settings?.whatsapp;
+  const waEnabled = wa?.enabled !== false && !!(wa?.primaryNumber || wa?.secondaryNumber);
+  const waNumber = (wa?.primaryNumber || wa?.secondaryNumber || "").replace(/\D/g, "");
+  const waMessage = wa?.message || "Hi Isaac! I found you through your portfolio and I'd like to work with you.";
+  const waLabel = wa?.buttonLabel || "WhatsApp";
   const linkedinUrl = social?.linkedin || "https://www.linkedin.com/in/isaac-l-quelemine-873633132";
 
   return (
@@ -34,11 +43,10 @@ export default function WorkTogether() {
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
         >
-          <span className="text-blue-400 text-sm font-semibold tracking-widest uppercase mb-3 block">Open to Opportunities</span>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Let&apos;s Work Together</h2>
+          <span className="text-blue-400 text-sm font-semibold tracking-widest uppercase mb-3 block">{tx(wt?.label, "Open to Opportunities")}</span>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">{tx(wt?.title, "Let's Work Together")}</h2>
           <p className="text-slate-300 text-base max-w-2xl mx-auto leading-relaxed mb-10">
-            I&apos;m available for freelance projects, full-time roles, and collaborations.
-            Whether you need a web application, a backend API, or a complete software solution — let&apos;s build something great.
+            {tx(wt?.description, "I'm available for freelance projects, full-time roles, and collaborations. Whether you need a web application, a backend API, or a complete software solution — let's build something great.")}
           </p>
         </motion.div>
 
@@ -49,7 +57,7 @@ export default function WorkTogether() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="flex flex-wrap justify-center gap-2 mb-10"
         >
-          {services.map((s, i) => (
+          {serviceList.map((s, i) => (
             <motion.span
               key={s}
               initial={{ opacity: 0, scale: 0.9 }}
@@ -70,7 +78,7 @@ export default function WorkTogether() {
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-green-500/30 bg-green-500/10 text-green-400 text-sm font-medium mb-10"
         >
           <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-          Available for selected projects
+          {tx(wt?.availabilityText, "Available for selected projects")}
         </motion.div>
 
         {/* CTA buttons */}
@@ -86,14 +94,16 @@ export default function WorkTogether() {
           >
             <Mail size={16} /> Send a Message
           </a>
+          {waEnabled && (
           <a
-            href="https://wa.me/231880857969?text=Hi%20Isaac!%20I%20found%20you%20through%20your%20portfolio%20and%20I%27d%20like%20to%20work%20with%20you."
+            href={`https://wa.me/${waNumber}?text=${encodeURIComponent(waMessage)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-outline-white inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold"
           >
-            <FaWhatsapp size={16} /> WhatsApp
+            <FaWhatsapp size={16} /> {waLabel}
           </a>
+          )}
           <a
             href={linkedinUrl}
             target="_blank"

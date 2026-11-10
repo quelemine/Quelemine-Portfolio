@@ -5,7 +5,7 @@ import {
   LogOut, MessageSquare, User, Settings, Upload, Lock, 
   FolderOpen, GraduationCap, Palette, FileText, Save, Plus,
   Edit2, Trash2, X, Check, ChevronDown, ChevronUp, Image as ImageIcon, Video,
-  Eye, EyeOff
+  Eye, EyeOff, Code2, Globe, Handshake, Phone
 } from "lucide-react";
 import { getAllSessions, clearAllSessions, deleteSession, type ChatSession } from "@/lib/chatLogger";
 import { UPLOAD_LIMITS, formatLimit } from "@/lib/uploadLimits";
@@ -13,6 +13,7 @@ import type { AdminSettings, Project, Education } from "@/types/admin";
 import en from "@/locales/en";
 import { projects as builtinProjectsData } from "@/data/projects";
 import { educationData as builtinEducationData } from "@/data/education";
+import { SkillsTab, CommunicationTab, LanguagesTab, WorkTogetherTab, ContactChannelsTab } from "./sections";
 
 // Effective English values the public site shows when no admin override exists.
 // Used to prefill admin forms so editing starts from what visitors see.
@@ -72,7 +73,7 @@ function mergeEffective<T>(admin: any, builtin: T): T {
   return admin as T;
 }
 
-type TabType = 'dashboard' | 'profile' | 'cv' | 'videos' | 'password' | 'projects' | 'education' | 'colors' | 'content' | 'logo' | 'typography' | 'chatlogs';
+type TabType = 'dashboard' | 'profile' | 'cv' | 'videos' | 'password' | 'projects' | 'education' | 'colors' | 'content' | 'logo' | 'typography' | 'chatlogs' | 'skills' | 'communication' | 'languages' | 'worktogether' | 'channels';
 
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState(false);
@@ -545,6 +546,11 @@ export default function AdminDashboard() {
     { id: 'colors' as TabType, label: 'Colors', icon: Palette },
     { id: 'typography' as TabType, label: 'Typography', icon: Settings },
     { id: 'content' as TabType, label: 'Content', icon: Settings },
+    { id: 'skills' as TabType, label: 'Skills', icon: Code2 },
+    { id: 'communication' as TabType, label: 'Communication', icon: MessageSquare },
+    { id: 'languages' as TabType, label: 'Languages', icon: Globe },
+    { id: 'worktogether' as TabType, label: 'Work Together', icon: Handshake },
+    { id: 'channels' as TabType, label: 'WhatsApp & Map', icon: Phone },
     { id: 'chatlogs' as TabType, label: 'Chat Logs', icon: MessageSquare },
   ];
 
@@ -692,6 +698,11 @@ export default function AdminDashboard() {
                 loading={loading}
               />
             )}
+            {activeTab === 'skills' && <SkillsTab key="skills" settings={settings} onSave={handleSaveSettings} loading={loading} />}
+            {activeTab === 'communication' && <CommunicationTab key="communication" settings={settings} onSave={handleSaveSettings} />}
+            {activeTab === 'languages' && <LanguagesTab key="languages" settings={settings} onSave={handleSaveSettings} />}
+            {activeTab === 'worktogether' && <WorkTogetherTab key="worktogether" settings={settings} onSave={handleSaveSettings} />}
+            {activeTab === 'channels' && <ContactChannelsTab key="channels" settings={settings} onSave={handleSaveSettings} />}
             {activeTab === 'chatlogs' && (
               <ChatLogsTab 
                 key="chatlogs" 

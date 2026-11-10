@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { Globe } from "lucide-react";
+import { useSettings } from "@/context/SettingsContext";
 
 const languages = [
   { name: "English", level: "Professional Fluency", flag: "🇺🇸", proficiency: 95, color: "from-blue-500 to-blue-600", badge: "Professional" },
@@ -21,6 +22,10 @@ const badgeColors: Record<string, string> = {
 export default function Languages() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
+  const { settings } = useSettings();
+  const adminLangs = settings?.languages?.filter((l) => l.enabled !== false)
+    .sort((a, b) => a.order - b.order);
+  const items = adminLangs?.length ? adminLangs : languages;
 
   return (
     <section id="languages" className="section-padding relative overflow-x-hidden" ref={ref}>
@@ -39,7 +44,7 @@ export default function Languages() {
         </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 max-w-5xl mx-auto">
-          {languages.map((lang, i) => (
+          {items.map((lang, i) => (
             <motion.div
               key={lang.name}
               initial={{ opacity: 0, y: 30 }}

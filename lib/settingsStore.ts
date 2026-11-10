@@ -20,6 +20,12 @@ export const DEFAULT_SETTINGS: AdminSettings = {
   cv: { url: "", filename: "", uploadDate: "" },
   projects: [],
   education: [],
+  skills: [],
+  communication: [],
+  languages: [],
+  workTogether: { services: [] },
+  whatsapp: { primaryNumber: "", secondaryNumber: "", message: "", buttonLabel: "", enabled: true },
+  map: { address: "", embedUrl: "", enabled: true },
   colors: {
     primary: "#2563eb",
     secondary: "#0B1F3A",

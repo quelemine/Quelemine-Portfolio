@@ -4,6 +4,7 @@ import { useInView } from "framer-motion";
 import { useRef, useState } from "react";
 import { Monitor, Server, Database, Code2, Wrench, X } from "lucide-react";
 import { skillCategories } from "@/data/skills";
+import { useSettings } from "@/context/SettingsContext";
 
 const iconMap = { Monitor, Server, Database, Code2, Wrench };
 
@@ -33,6 +34,10 @@ export default function Skills() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const info = activeTag ? tagInfo[activeTag] : null;
+  const { settings } = useSettings();
+  const adminSkills = settings?.skills?.filter((s) => s.enabled !== false)
+    .sort((a, b) => a.order - b.order);
+  const categories = adminSkills?.length ? adminSkills : skillCategories;
 
   return (
     <section id="skills" className="section-padding relative overflow-x-hidden" ref={ref}>
@@ -52,7 +57,7 @@ export default function Skills() {
         </motion.div>
 
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {skillCategories.map((cat, i) => {
+          {categories.map((cat, i) => {
             const Icon = iconMap[cat.icon as keyof typeof iconMap] || Code2;
             return (
               <motion.div

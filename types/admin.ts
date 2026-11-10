@@ -28,6 +28,12 @@ export interface AdminSettings {
   };
   projects: Project[];
   education: Education[];
+  skills?: SkillCategoryAdmin[];
+  communication?: CommunicationItem[];
+  languages?: LanguageItem[];
+  workTogether?: WorkTogetherSettings;
+  whatsapp?: WhatsAppSettings;
+  map?: MapSettings;
   colors: ColorTheme;
   typography: TypographySettings;
   siteContent: SiteContent;
@@ -72,6 +78,72 @@ export interface ColorTheme {
   background: string;
   text: string;
   cardBackground: string;
+  mutedText?: string;
+  borderColor?: string;
+}
+
+export interface SkillCategoryAdmin {
+  id: string;
+  title: string;
+  icon: string;
+  tags: string[];
+  capabilities: string[];
+  enabled: boolean;
+  order: number;
+}
+
+export interface CommunicationItem {
+  id: string;
+  icon: string;
+  title: string;
+  desc: string;
+  color: string;
+  bg: string;
+  enabled: boolean;
+  order: number;
+}
+
+export interface LanguageItem {
+  id: string;
+  name: string;
+  level: string;
+  flag: string;
+  proficiency: number;
+  badge: string;
+  color: string;
+  enabled: boolean;
+  order: number;
+}
+
+export interface WorkService {
+  id: string;
+  title: string;
+  desc?: string;
+  icon?: string;
+  enabled: boolean;
+  order: number;
+}
+
+export interface WorkTogetherSettings {
+  label?: string;
+  title?: string;
+  description?: string;
+  availabilityText?: string;
+  services: WorkService[];
+}
+
+export interface WhatsAppSettings {
+  primaryNumber: string;
+  secondaryNumber?: string;
+  message: string;
+  buttonLabel: string;
+  enabled: boolean;
+}
+
+export interface MapSettings {
+  address: string;
+  embedUrl: string;
+  enabled: boolean;
 }
 
 export interface TypographySettings {

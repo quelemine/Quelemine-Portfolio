@@ -22,6 +22,14 @@ export default function Contact() {
   const address = tx(contact?.address, BUILTIN_ADDRESS);
   const linkedinUrl = social?.linkedin || BUILTIN_LINKEDIN;
   const githubUrl = social?.github || BUILTIN_GITHUB;
+  const wa = settings?.whatsapp;
+  const mapSettings = settings?.map;
+  const waEnabled = wa?.enabled !== false;
+  const waPrimary = wa?.primaryNumber?.replace(/\D/g, "") || "";
+  const waSecondary = wa?.secondaryNumber?.replace(/\D/g, "") || "";
+  const waMsg = wa?.message || "Hi Isaac! I found you through your portfolio.";
+  const mapEnabled = mapSettings?.enabled !== false;
+  const mapEmbed = mapSettings?.embedUrl || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d63799.41051493849!2d30.0187!3d-1.9441!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x19dca4258ed8e797%3A0xa0bc47a2f5e0f5e!2sKigali%2C%20Rwanda!5e0!3m2!1sen!2sus!4v1700000000000";
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
 
@@ -89,7 +97,12 @@ export default function Contact() {
                   {[
                     { icon: Mail,       label: "Email",           value: email,                 href: `mailto:${email}`,                                                                                       iconColor: "text-blue-600",  iconBg: "bg-blue-50" },
                     { icon: Phone,      label: "Phone (Rwanda)",  value: phone,                 href: `tel:${phone.replace(/[^+\d]/g, "")}`,                                                           iconColor: "text-blue-600",  iconBg: "bg-blue-50" },
-                    { icon: FaWhatsapp, label: "WhatsApp (LR)",   value: "+231 880 857 969",          href: "https://wa.me/231880857969?text=Hi%20Isaac!%20I%20found%20you%20through%20your%20portfolio.", iconColor: "text-green-600", iconBg: "bg-green-50" },
+                    ...(waEnabled && waPrimary ? [{ icon: FaWhatsapp, label: "WhatsApp (LR)", value: wa?.primaryNumber || "+231 880 857 969", href: `https://wa.me/${waPrimary}?text=${encodeURIComponent(waMsg)}`, iconColor: "text-green-600", iconBg: "bg-green-50" }] : []),
+                    ...(waEnabled && waSecondary ? [{ icon: FaWhatsapp, label: "WhatsApp (TR)", value: wa?.secondaryNumber || "+90 533 872 1736", href: `https://wa.me/${waSecondary}?text=${encodeURIComponent(waMsg)}`, iconColor: "text-green-600", iconBg: "bg-green-50" }] : []),
+                    ...(waEnabled && !wa?.primaryNumber && !wa?.secondaryNumber ? [
+                      { icon: FaWhatsapp, label: "WhatsApp (LR)", value: "+231 880 857 969", href: "https://wa.me/231880857969?text=Hi%20Isaac!%20I%20found%20you%20through%20your%20portfolio.", iconColor: "text-green-600", iconBg: "bg-green-50" },
+                      { icon: FaWhatsapp, label: "WhatsApp (TR)", value: "+90 533 872 1736", href: "https://wa.me/905338721736?text=Hi%20Isaac!%20I%20found%20you%20through%20your%20portfolio.", iconColor: "text-green-600", iconBg: "bg-green-50" },
+                    ] : []),
                   ].map((item) => (
                     <div key={item.label} className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-lg ${item.iconBg} flex items-center justify-center flex-shrink-0`}>
@@ -109,7 +122,6 @@ export default function Contact() {
                 {/* Card 2 */}
                 <div className="rounded-xl border border-slate-100 bg-white p-4 space-y-4 shadow-sm">
                   {[
-                    { icon: FaWhatsapp, label: "WhatsApp (TR)", value: "+90 533 872 1736",    href: "https://wa.me/905338721736?text=Hi%20Isaac!%20I%20found%20you%20through%20your%20portfolio.", iconColor: "text-green-600",  iconBg: "bg-green-50" },
                     { icon: FaLinkedin, label: "LinkedIn",      value: "Isaac L. Quelemine",   href: linkedinUrl,                                                                                          iconColor: "text-blue-700",   iconBg: "bg-blue-50" },
                     { icon: FaGithub,   label: "GitHub",        value: "quelemine",           href: githubUrl,                                                                                            iconColor: "text-slate-700",  iconBg: "bg-slate-100" },
                   ].map((item) => (
@@ -130,6 +142,7 @@ export default function Contact() {
               </div>
 
               {/* Location map */}
+              {mapEnabled && (
               <div className="rounded-xl overflow-hidden border border-slate-100 shadow-sm">
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-100">
                   <MapPin size={14} className="text-indigo-600 flex-shrink-0" />
@@ -137,7 +150,7 @@ export default function Contact() {
                 </div>
                 <iframe
                   title="Kigali, Rwanda"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d63799.41051493849!2d30.0187!3d-1.9441!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x19dca4258ed8e797%3A0xa0bc47a2f5e0f5e!2sKigali%2C%20Rwanda!5e0!3m2!1sen!2sus!4v1700000000000"
+                  src={mapEmbed}
                   width="100%"
                   height="180"
                   style={{ border: 0, display: "block" }}
@@ -146,6 +159,7 @@ export default function Contact() {
                   referrerPolicy="no-referrer-when-downgrade"
                 />
               </div>
+              )}
             </div>
 
             <div className="glass-card rounded-2xl p-5 text-center">
