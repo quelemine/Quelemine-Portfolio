@@ -2,6 +2,9 @@ export interface StoredCredentials {
   username: string;
   // Either a "scrypt:<saltHex>:<hashHex>" string or a legacy plaintext password
   secret: string | null;
+  // Optional second factor for password recovery (security question + hashed answer)
+  securityQuestion?: string | null;
+  securityAnswerHash?: string | null;
 }
 
 export interface NewUpload {

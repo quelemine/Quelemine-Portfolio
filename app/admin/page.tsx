@@ -82,6 +82,14 @@ export default function AdminDashboard() {
   const [pwInput, setPwInput] = useState("");
   const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [forgotMode, setForgotMode] = useState<"none" | "question" | "reset">("none");
+  const [forgotUser, setForgotUser] = useState("");
+  const [forgotQuestion, setForgotQuestion] = useState("");
+  const [forgotAnswer, setForgotAnswer] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [forgotNewPw, setForgotNewPw] = useState("");
+  const [forgotNewPw2, setForgotNewPw2] = useState("");
+  const [forgotBusy, setForgotBusy] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [loginLogo, setLoginLogo] = useState("");
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -322,12 +330,12 @@ export default function AdminDashboard() {
     adminFetch(`/api/admin/files?id=${id}`, { method: 'DELETE' }).catch(() => {});
   };
 
-  const handlePasswordChange = async (currentPassword: string, newPassword: string, newUsername: string): Promise<boolean> => {
+  const handlePasswordChange = async (currentPassword: string, newPassword: string, newUsername: string, security?: { question?: string; answer?: string }): Promise<boolean> => {
     try {
       const response = await adminFetch('/api/admin/password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword, newUsername })
+        body: JSON.stringify({ currentPassword, newPassword, newUsername, ...(security?.question !== undefined ? { securityQuestion: security.question, securityAnswer: security.answer } : {}) })
       });
       const data = await response.json().catch(() => ({}));
 
@@ -495,6 +503,7 @@ export default function AdminDashboard() {
             <p className="text-slate-400 text-sm mt-1">Quelemine's website</p>
           </div>
           
+          {forgotMode === "none" ? (
           <form onSubmit={login} className="space-y-4">
               <input
                 type="text"
@@ -528,7 +537,98 @@ export default function AdminDashboard() {
               <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
                 Sign In
               </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setForgotMode("question");
+                  setLoginError("");
+                  setForgotUser(usernameInput.trim());
+                  if (usernameInput.trim()) {
+                    try {
+                      const res = await fetch(`/api/admin/reset-password?username=${encodeURIComponent(usernameInput.trim())}`);
+                      const data = await res.json().catch(() => ({}));
+                      if (res.ok && data.securityQuestion) setForgotQuestion(data.securityQuestion);
+                      else setForgotQuestion("");
+                    } catch { setForgotQuestion(""); }
+                  }
+                }}
+                className="w-full text-center text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Forgot password?
+              </button>
             </form>
+          ) : forgotMode === "question" ? (
+            <form
+              className="space-y-4"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setLoginError("");
+                if (!forgotUser.trim() || !forgotAnswer.trim()) { setLoginError("Username and answer are required"); return; }
+                setForgotBusy(true);
+                try {
+                  const res = await fetch('/api/admin/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'verify', username: forgotUser.trim(), answer: forgotAnswer.trim() })
+                  });
+                  const data = await res.json().catch(() => ({}));
+                  if (res.ok && data.resetToken) {
+                    setResetToken(data.resetToken);
+                    setForgotMode('reset');
+                  } else {
+                    setLoginError(data.error || 'Verification failed');
+                  }
+                } catch { setLoginError('Verification failed'); }
+                finally { setForgotBusy(false); }
+              }}
+            >
+              <p className="text-white text-sm font-semibold text-center">Reset Password</p>
+              {!forgotQuestion && <p className="text-amber-400 text-xs text-center">Recovery is not configured for this account. Contact the site owner.</p>}
+              {forgotQuestion && <p className="text-slate-300 text-xs text-center">{forgotQuestion}</p>}
+              <input type="text" value={forgotUser} onChange={(e) => setForgotUser(e.target.value)} placeholder="Username" autoComplete="username" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60" />
+              <input type="text" value={forgotAnswer} onChange={(e) => setForgotAnswer(e.target.value)} placeholder="Security answer" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60" />
+              {loginError && <p className="text-red-400 text-xs">{loginError}</p>}
+              <button type="submit" disabled={forgotBusy || !forgotQuestion} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors">
+                {forgotBusy ? 'Verifying...' : 'Verify & Continue'}
+              </button>
+              <button type="button" onClick={() => { setForgotMode('none'); setLoginError(''); }} className="w-full text-center text-xs text-slate-400 hover:text-white transition-colors">Back to sign in</button>
+            </form>
+          ) : (
+            <form
+              className="space-y-4"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setLoginError("");
+                if (forgotNewPw.length < 12) { setLoginError('Password must be at least 12 characters'); return; }
+                if (forgotNewPw !== forgotNewPw2) { setLoginError('Passwords do not match'); return; }
+                setForgotBusy(true);
+                try {
+                  const res = await fetch('/api/admin/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'reset', token: resetToken, newPassword: forgotNewPw })
+                  });
+                  const data = await res.json().catch(() => ({}));
+                  if (res.ok) {
+                    setForgotMode('none'); setLoginError(''); setPwInput('');
+                    alert('Password updated. Please sign in.');
+                  } else {
+                    setLoginError(data.error || 'Reset failed');
+                  }
+                } catch { setLoginError('Reset failed'); }
+                finally { setForgotBusy(false); }
+              }}
+            >
+              <p className="text-white text-sm font-semibold text-center">Choose New Password</p>
+              <input type="password" value={forgotNewPw} onChange={(e) => setForgotNewPw(e.target.value)} placeholder="New password (min 12 chars)" autoComplete="new-password" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60" />
+              <input type="password" value={forgotNewPw2} onChange={(e) => setForgotNewPw2(e.target.value)} placeholder="Confirm new password" autoComplete="new-password" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60" />
+              {loginError && <p className="text-red-400 text-xs">{loginError}</p>}
+              <button type="submit" disabled={forgotBusy} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors">
+                {forgotBusy ? 'Updating...' : 'Update Password'}
+              </button>
+              <button type="button" onClick={() => { setForgotMode('question'); setLoginError(''); }} className="w-full text-center text-xs text-slate-400 hover:text-white transition-colors">Back</button>
+            </form>
+          )}
         </motion.div>
       </div>
     );
@@ -1700,6 +1800,8 @@ function PasswordTab({ onChangePassword }: any) {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newUsername, setNewUsername] = useState('');
+  const [secQuestion, setSecQuestion] = useState('');
+  const [secAnswer, setSecAnswer] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -1719,12 +1821,16 @@ function PasswordTab({ onChangePassword }: any) {
 
     setSaving(true);
     try {
-      const ok = await onChangePassword(currentPassword, newPassword, newUsername);
+      const hasSecurity = secQuestion.trim().length > 0 || secAnswer.trim().length > 0;
+      const ok = await onChangePassword(currentPassword, newPassword, newUsername,
+        hasSecurity ? { question: secQuestion.trim(), answer: secAnswer } : undefined);
       if (ok) {
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
         setNewUsername('');
+        setSecQuestion('');
+        setSecAnswer('');
       }
     } finally {
       setSaving(false);
@@ -1814,6 +1920,32 @@ function PasswordTab({ onChangePassword }: any) {
               </div>
             </div>
           )}
+          <div className="pt-2 border-t border-slate-200">
+            <p className="text-sm font-medium text-slate-700 mb-1">Password Recovery (optional 2FA)</p>
+            <p className="text-xs text-slate-500 mb-3">Set a security question so you can reset a forgotten password from the login page. Leave blank to disable recovery.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Security Question</label>
+                <input
+                  type="text"
+                  value={secQuestion}
+                  onChange={(e) => setSecQuestion(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+                  placeholder="e.g. What is your first school's name?"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Security Answer</label>
+                <input
+                  type="text"
+                  value={secAnswer}
+                  onChange={(e) => setSecAnswer(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+                  placeholder="Answer (stored hashed, never shown)"
+                />
+              </div>
+            </div>
+          </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"

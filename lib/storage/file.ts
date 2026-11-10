@@ -51,7 +51,12 @@ export const fileBackend: StorageBackend = {
   async readCredentials() {
     const creds = await readJson(CREDENTIALS_FILE);
     if (creds && typeof creds.username === "string") {
-      return { username: creds.username, secret: (creds.secret as string) ?? null };
+      return {
+        username: creds.username,
+        secret: (creds.secret as string) ?? null,
+        securityQuestion: (creds.securityQuestion as string) ?? null,
+        securityAnswerHash: (creds.securityAnswerHash as string) ?? null,
+      };
     }
     // Migrate legacy credentials stored inside the settings file
     const settings = await readJson(SETTINGS_FILE);

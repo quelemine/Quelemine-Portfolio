@@ -47,8 +47,14 @@ async function ensureTables(): Promise<void> {
         id TINYINT PRIMARY KEY,
         username VARCHAR(100) NOT NULL,
         secret VARCHAR(255),
+        security_question VARCHAR(255),
+        security_answer_hash VARCHAR(255),
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`);
+      // Migrate pre-existing credentials tables that lack the 2FA columns
+      await p.query(`ALTER TABLE credentials
+        ADD COLUMN IF NOT EXISTS security_question VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS security_answer_hash VARCHAR(255)`);
       await p.query(`CREATE TABLE IF NOT EXISTS _probe (id INT PRIMARY KEY)`);
     })();
   }
@@ -95,19 +101,25 @@ export const mysqlBackend: StorageBackend = {
   async readCredentials() {
     await ensureTables();
     const [rows] = await getPool().query<mysql.RowDataPacket[]>(
-      "SELECT username, secret FROM credentials WHERE id = 1"
+      "SELECT username, secret, security_question, security_answer_hash FROM credentials WHERE id = 1"
     );
     const row = rows[0];
     if (!row) return null;
-    return { username: String(row.username), secret: (row.secret as string) ?? null };
+    return {
+      username: String(row.username),
+      secret: (row.secret as string) ?? null,
+      securityQuestion: (row.security_question as string) ?? null,
+      securityAnswerHash: (row.security_answer_hash as string) ?? null,
+    };
   },
 
   async writeCredentials(credentials: StoredCredentials) {
     await ensureTables();
     await getPool().query(
-      `INSERT INTO credentials (id, username, secret) VALUES (1, ?, ?)
-       ON DUPLICATE KEY UPDATE username = VALUES(username), secret = VALUES(secret)`,
-      [credentials.username, credentials.secret]
+      `INSERT INTO credentials (id, username, secret, security_question, security_answer_hash) VALUES (1, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE username = VALUES(username), secret = VALUES(secret),
+         security_question = VALUES(security_question), security_answer_hash = VALUES(security_answer_hash)`,
+      [credentials.username, credentials.secret, credentials.securityQuestion ?? null, credentials.securityAnswerHash ?? null]
     );
   },
 

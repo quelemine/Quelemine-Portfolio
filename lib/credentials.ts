@@ -57,9 +57,35 @@ export async function getCredentials(): Promise<StoredCredentials> {
   return stored ?? { username: "admin", secret: null };
 }
 
-export async function setCredentials(updates: { username?: string; password?: string }): Promise<void> {
+export async function setCredentials(updates: {
+  username?: string;
+  password?: string;
+  securityQuestion?: string | null;
+  securityAnswer?: string;
+}): Promise<void> {
   const current = await getCredentials();
   const username = updates.username?.trim() || current.username;
   const secret = updates.password ? await hashPassword(updates.password) : current.secret;
-  await getStorage().writeCredentials({ username, secret });
+
+  let securityQuestion = current.securityQuestion ?? null;
+  let securityAnswerHash = current.securityAnswerHash ?? null;
+  if (updates.securityQuestion !== undefined) {
+    securityQuestion = updates.securityQuestion?.trim() || null;
+    // Clearing the question also clears the answer
+    if (!securityQuestion) securityAnswerHash = null;
+  }
+  if (updates.securityAnswer !== undefined) {
+    securityAnswerHash = updates.securityAnswer ? await hashPassword(updates.securityAnswer) : null;
+  }
+
+  await getStorage().writeCredentials({ username, secret, securityQuestion, securityAnswerHash });
+}
+
+// Verifies a recovery answer against the stored hash. Returns null when no
+// security question is configured.
+export async function verifySecurityAnswer(answer: string): Promise<boolean | null> {
+  const credentials = await getCredentials();
+  if (!credentials.securityQuestion || !credentials.securityAnswerHash) return null;
+  const result = await verifyStoredSecret(credentials.securityAnswerHash, answer);
+  return result !== null;
 }

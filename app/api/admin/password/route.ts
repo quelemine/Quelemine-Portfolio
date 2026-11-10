@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     const denied = requireAdmin(request);
     if (denied) return denied;
 
-    const { currentPassword, newPassword, newUsername } = await request.json();
+    const { currentPassword, newPassword, newUsername, securityQuestion, securityAnswer } = await request.json();
 
     if (!currentPassword) {
       return NextResponse.json({ error: 'Current password is required' }, { status: 400 });
@@ -46,15 +46,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 });
     }
 
-    const updates: { username?: string; password?: string } = {};
+    const updates: { username?: string; password?: string; securityQuestion?: string | null; securityAnswer?: string } = {};
     if (newUsername && newUsername.trim()) {
       updates.username = newUsername.trim();
     }
     if (newPassword) {
       updates.password = newPassword;
     }
+    // Optional recovery second factor (security question + answer)
+    if (securityQuestion !== undefined) {
+      updates.securityQuestion = securityQuestion;
+      if (securityAnswer !== undefined) {
+        updates.securityAnswer = securityAnswer;
+      }
+    }
 
-    if (updates.username || updates.password) {
+    if (updates.username || updates.password || updates.securityQuestion !== undefined) {
       await setCredentials(updates);
       revalidatePath("/");
     }
