@@ -15,6 +15,7 @@ type TabType = 'dashboard' | 'profile' | 'cv' | 'videos' | 'password' | 'project
 
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [usernameInput, setUsernameInput] = useState("");
   const [pwInput, setPwInput] = useState("");
   const [pwError, setPwError] = useState(false);
@@ -34,7 +35,8 @@ export default function AdminDashboard() {
     fetch('/api/admin/session')
       .then(res => res.json())
       .then(data => { if (data.authed) setAuthed(true); })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setChecking(false));
 
     // Fetch login logo on component mount (before authentication)
     fetch('/api/admin/settings')
@@ -284,6 +286,17 @@ export default function AdminDashboard() {
       showNotification('success', 'Chat session deleted');
     }
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-[#0B1F3A] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+          <p className="text-slate-400 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!authed) {
     return (
