@@ -13,7 +13,7 @@ export default function Hero() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden grid-pattern bg-[#0B1F3A] w-full"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden grid-pattern bg-(--navy) w-full"
     >
       {/* Subtle background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

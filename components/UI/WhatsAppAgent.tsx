@@ -8,14 +8,23 @@ import { FaWhatsapp } from "react-icons/fa6";
 import AIAvatar from "@/components/UI/AIAvatar";
 import { createSession, logMessage } from "@/lib/chatLogger";
 import { useChatContext } from "@/context/ChatContext";
+import { useSettings } from "@/context/SettingsContext";
 
 interface Message { id: number; role: "bot" | "user"; text: string; attachment?: { name: string; url: string; type: string }; }
 
-const WA_PRIMARY   = "+231880857969";
-const WA_SECONDARY = "+905338721736";
-const PHONE_RW     = "+250793148624";
-const EMAIL        = "quelemineisaacl@gmail.com";
+// Built-in fallbacks — overridden by admin WhatsApp/contact settings when configured
+const FALLBACK_WA_PRIMARY   = "+231880857969";
+const FALLBACK_WA_SECONDARY = "+905338721736";
+const FALLBACK_PHONE_RW     = "+250793148624";
+const FALLBACK_EMAIL        = "quelemineisaacl@gmail.com";
 const BOT_NAME     = "Isaac's Assistant";
+
+interface BotContact {
+  email: string;
+  waPrimary: string;    // digits only
+  waSecondary: string;  // digits only, may be ""
+  phoneRw: string;      // digits only
+}
 
 // Chat width / height constants used for viewport clamping
 const CHAT_W  = 384; // ~w-96 on desktop
@@ -27,7 +36,7 @@ const MIN_H = 400;
 const MAX_W = 600;
 const MAX_H = 800;
 
-function getBotReply(input: string, name: string): { text: string; whatsappMsg?: string; attachment?: { name: string; url: string; type: string } } {
+function getBotReply(input: string, name: string, contact: BotContact): { text: string; whatsappMsg?: string; attachment?: { name: string; url: string; type: string } } {
   const q = input.toLowerCase().trim();
 
   if (/who is isaac|tell me about isaac|about isaac|introduce|isaac quelemine|quelemine|what do you know about (him|isaac)|tell me (more|something) about (him|isaac)/.test(q))
@@ -37,7 +46,7 @@ function getBotReply(input: string, name: string): { text: string; whatsappMsg?:
 
   if (/hire|job|work|opportunit|recruit|position|role|employ/.test(q))
     return {
-      text: `Great, ${name}! Isaac is open to new opportunities. You can reach him directly on WhatsApp for a quick response, or send an email to ${EMAIL}. Click the WhatsApp button below! 🚀`,
+      text: `Great, ${name}! Isaac is open to new opportunities. You can reach him directly on WhatsApp for a quick response, or send an email to ${contact.email}. Click the WhatsApp button below! 🚀`,
       whatsappMsg: `Hi Isaac! I'm ${name}. I found you through your portfolio and I'd like to discuss a job opportunity with you.`,
     };
 
@@ -64,13 +73,13 @@ function getBotReply(input: string, name: string): { text: string; whatsappMsg?:
 
   if (/email|mail|contact|reach|message/.test(q))
     return {
-      text: `You can reach Isaac at ${EMAIL} or via WhatsApp for a faster response. His Rwanda number is ${PHONE_RW}. Click the WhatsApp button below, ${name}! 📧`,
+      text: `You can reach Isaac at ${contact.email} or via WhatsApp for a faster response. His Rwanda number is ${contact.phoneRw}. Click the WhatsApp button below, ${name}! 📧`,
       whatsappMsg: `Hi Isaac! I'm ${name}. I'd like to get in touch with you.`,
     };
 
   if (/whatsapp|phone|call|number/.test(q))
     return {
-      text: `Isaac is available on WhatsApp at ${WA_PRIMARY} (Liberia) or ${WA_SECONDARY} (Turkey). His Rwanda phone is ${PHONE_RW}. Click below for a quick chat, ${name}! 📱`,
+      text: `Isaac is available on WhatsApp at ${contact.waPrimary}${contact.waSecondary ? ` or ${contact.waSecondary}` : ""}. His Rwanda phone is ${contact.phoneRw}. Click below for a quick chat, ${name}! 📱`,
       whatsappMsg: `Hi Isaac! I'm ${name}, reaching out from your portfolio.`,
     };
 
@@ -182,6 +191,21 @@ export default function WhatsAppAgent() {
   const resizeOrigin = useRef<{ mx: number; my: number; w: number; h: number } | null>(null);
 
   const { pendingMessage, clearPending } = useChatContext();
+  const { settings } = useSettings();
+
+  // Admin-configured contact details with built-in fallbacks
+  const wa = settings?.whatsapp;
+  const contactCfg = settings?.siteContent?.contact;
+  const waEnabled = wa?.enabled !== false;
+  const contact: BotContact = {
+    email: contactCfg?.email || FALLBACK_EMAIL,
+    waPrimary: (wa?.primaryNumber || FALLBACK_WA_PRIMARY).replace(/\D/g, ""),
+    waSecondary: (wa?.secondaryNumber || FALLBACK_WA_SECONDARY).replace(/\D/g, ""),
+    phoneRw: (contactCfg?.phone || FALLBACK_PHONE_RW).replace(/\D/g, ""),
+  };
+  const contactRef = useRef(contact);
+  contactRef.current = contact;
+  const waLabel = wa?.buttonLabel || "WhatsApp";
 
   /* ── Detect mobile viewport ── */
   useEffect(() => {
@@ -208,7 +232,7 @@ export default function WhatsAppAgent() {
     
     setTimeout(() => {
       try {
-        const reply = getBotReply(text, name);
+        const reply = getBotReply(text, name, contactRef.current);
         setMessages((prev) => [...prev, { id: performance.now() + 1, role: "bot", text: reply.text, attachment: reply.attachment }]);
         logMessage(sid, "bot", reply.text, "success");
         if (reply.whatsappMsg) setLastWhatsappMsg(reply.whatsappMsg);
@@ -351,7 +375,7 @@ export default function WhatsAppAgent() {
       {/* ── Floating button ── */}
       <motion.button
         onClick={openChat}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[#0B1F3A] border-2 border-blue-500/60 flex items-center justify-center shadow-2xl shadow-blue-500/30 transition-all hover:border-blue-400"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-(--navy) border-2 border-blue-500/60 flex items-center justify-center shadow-2xl shadow-blue-500/30 transition-all hover:border-blue-400"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         initial={{ scale: 0, opacity: 0 }}
@@ -453,7 +477,7 @@ export default function WhatsAppAgent() {
                 {!userName ? (
                   <div className="flex-1 bg-[#0a0f1e] flex flex-col items-center justify-center p-8 gap-6 overflow-y-auto">
                     <div className="text-center">
-                      <div className="w-16 h-16 rounded-full bg-[#0B1F3A] border-2 border-blue-500/40 flex items-center justify-center mx-auto mb-4">
+                      <div className="w-16 h-16 rounded-full bg-(--navy) border-2 border-blue-500/40 flex items-center justify-center mx-auto mb-4">
                         <AIAvatar size={44} />
                       </div>
                       <p className="text-white font-semibold text-base">Welcome! 👋</p>
@@ -578,21 +602,23 @@ export default function WhatsAppAgent() {
                     </div>
 
                     {/* WhatsApp buttons */}
-                    {lastWhatsappMsg && (
+                    {lastWhatsappMsg && waEnabled && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
                         className="bg-slate-900 px-3 pb-2 flex gap-2 flex-shrink-0"
                       >
-                        <button onClick={() => openWhatsApp(WA_PRIMARY, lastWhatsappMsg)}
+                        <button onClick={() => openWhatsApp(contact.waPrimary, lastWhatsappMsg)}
                           className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-xs font-medium transition-colors">
-                          <FaWhatsapp size={14} /> WhatsApp (Liberia)
+                          <FaWhatsapp size={14} /> {waLabel}
                         </button>
-                        <button onClick={() => openWhatsApp(WA_SECONDARY, lastWhatsappMsg)}
-                          className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-700 hover:bg-green-600 text-white text-xs font-medium transition-colors">
-                          <FaWhatsapp size={14} /> WhatsApp (TR)
-                        </button>
+                        {contact.waSecondary && (
+                          <button onClick={() => openWhatsApp(contact.waSecondary, lastWhatsappMsg)}
+                            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-700 hover:bg-green-600 text-white text-xs font-medium transition-colors">
+                            <FaWhatsapp size={14} /> {waLabel} 2
+                          </button>
+                        )}
                       </motion.div>
                     )}
 

@@ -18,7 +18,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="relative border-t border-white/8 bg-[#0B1F3A] overflow-x-hidden">
+    <footer className="relative border-t border-white/8 bg-(--navy) overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid md:grid-cols-3 gap-8 mb-8">
           {/* Brand */}

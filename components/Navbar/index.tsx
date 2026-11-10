@@ -57,7 +57,7 @@ export default function Navbar() {
         scrolled
           ? "shadow-lg shadow-black/20 border-b border-white/8"
           : ""
-      } bg-[#0B1F3A] w-full`}
+      } bg-(--navy) w-full`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -107,7 +107,7 @@ export default function Navbar() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -6, scale: 0.97 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 w-44 bg-[#0B1F3A] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50"
+                    className="absolute right-0 top-full mt-2 w-44 bg-(--navy) border border-white/10 rounded-xl shadow-xl overflow-hidden z-50"
                   >
                     {LANGUAGES.map((lang) => (
                       <button
@@ -164,7 +164,7 @@ export default function Navbar() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden bg-[#0B1F3A] border-t border-white/8 overflow-hidden w-full"
+            className="lg:hidden bg-(--navy) border-t border-white/8 overflow-hidden w-full"
           >
             <div className="px-4 py-4 max-w-7xl mx-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mb-3">
