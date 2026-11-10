@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { readSettings } from "@/lib/settingsStore";
 import { createSessionToken, sessionCookieHeader } from "@/lib/adminAuth";
+import { getCredentials, setCredentials, verifyStoredSecret } from "@/lib/credentials";
 
 // Rate limiting: max 5 failed attempts per IP per 15 minutes
 const MAX_ATTEMPTS = 5;
@@ -60,18 +60,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication is not configured' }, { status: 500 });
     }
 
+    const credentials = await getCredentials();
     const envPassword = process.env.ADMIN_PASSWORD || "";
-    const settings = await readSettings();
-    const storedUsername = settings.security?.username || "admin";
-    const storedPassword = settings.security?.password || "";
 
-    // Check username and password with timing-safe comparisons
-    const isUsernameValid = timingSafeEqualString(username, storedUsername);
-    const isPasswordValid =
-      (envPassword.length > 0 && timingSafeEqualString(password, envPassword)) ||
-      (storedPassword.length > 0 && timingSafeEqualString(password, storedPassword));
+    // Username must match the stored username; password matches the env var
+    // (constant-time) or the stored credential secret.
+    const isUsernameValid = timingSafeEqualString(username, credentials.username);
+    const envPasswordValid = envPassword.length > 0 && timingSafeEqualString(password, envPassword);
+    const storedResult = await verifyStoredSecret(credentials.secret, password);
+    const isPasswordValid = envPasswordValid || storedResult !== null;
 
     if (isUsernameValid && isPasswordValid) {
+      // Upgrade a legacy plaintext password to a scrypt hash on first successful login
+      if (storedResult === "plain") {
+        try {
+          await setCredentials({ password });
+        } catch {
+          // Non-fatal: login still succeeds
+        }
+      }
       attempts.delete(ip);
       const response = NextResponse.json({ success: true });
       response.headers.set("Set-Cookie", sessionCookieHeader(token));

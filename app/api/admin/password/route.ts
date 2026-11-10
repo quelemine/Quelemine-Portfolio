@@ -1,53 +1,61 @@
 import { NextResponse } from "next/server";
-import type { AdminSettings } from "@/types/admin";
+import crypto from "crypto";
 import { requireAdmin } from "@/lib/adminAuth";
-import { readSettings, writeSettings } from "@/lib/settingsStore";
+import { getCredentials, setCredentials, verifyStoredSecret } from "@/lib/credentials";
 
 function logError(error: unknown) {
   const err = error as NodeJS.ErrnoException;
   console.error("password update failed:", err?.code, err?.message);
 }
 
-// POST - Verify current password and set new password/username/security
+function timingSafeEqualString(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, "utf-8");
+  const bufB = Buffer.from(b, "utf-8");
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+const MIN_PASSWORD_LENGTH = 12;
+
+// POST - Verify current password and update stored credentials
 export async function POST(request: Request) {
   try {
     const denied = requireAdmin(request);
     if (denied) return denied;
 
-    const { currentPassword, newPassword, newUsername, securityQuestion, securityAnswer } = await request.json();
+    const { currentPassword, newPassword, newUsername } = await request.json();
 
     if (!currentPassword) {
       return NextResponse.json({ error: 'Current password is required' }, { status: 400 });
     }
 
-    const settings = await readSettings();
+    if (newPassword && newPassword.length < MIN_PASSWORD_LENGTH) {
+      return NextResponse.json({ error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters` }, { status: 400 });
+    }
 
-    // Check if current password matches (check both env var and stored password)
+    const credentials = await getCredentials();
     const envPassword = process.env.ADMIN_PASSWORD || "";
-    const storedPassword = settings.security?.password || "";
 
-    const isValid = currentPassword === envPassword || currentPassword === storedPassword;
+    // Current password must match the env var or the stored credential
+    const envValid = envPassword.length > 0 && timingSafeEqualString(currentPassword, envPassword);
+    const storedResult = await verifyStoredSecret(credentials.secret, currentPassword);
+    const isValid = envValid || storedResult !== null;
 
     if (!isValid) {
       return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 });
     }
 
-    // Update password, username, and security settings
+    const updates: { username?: string; password?: string } = {};
+    if (newUsername && newUsername.trim()) {
+      updates.username = newUsername.trim();
+    }
     if (newPassword) {
-      settings.security = { ...(settings.security ?? { username: "admin", password: "", securityQuestion: "", securityAnswer: "" }), password: newPassword };
-    }
-    if (newUsername) {
-      settings.security = { ...(settings.security ?? { username: "admin", password: "", securityQuestion: "", securityAnswer: "" }), username: newUsername };
-    }
-    if (securityQuestion !== undefined || securityAnswer !== undefined) {
-      settings.security = {
-        ...(settings.security ?? { username: "admin", password: "", securityQuestion: "", securityAnswer: "" }),
-        securityQuestion: securityQuestion ?? settings.security?.securityQuestion ?? "",
-        securityAnswer: securityAnswer ?? settings.security?.securityAnswer ?? "",
-      };
+      updates.password = newPassword;
     }
 
-    await writeSettings(settings);
+    if (updates.username || updates.password) {
+      await setCredentials(updates);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
