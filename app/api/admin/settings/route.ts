@@ -4,8 +4,20 @@ import type { AdminSettings } from "@/types/admin";
 import { requireAdmin } from "@/lib/adminAuth";
 import { readSettings, writeSettings, deepMerge } from "@/lib/settingsStore";
 
+// Explicit allowlist of public-safe settings keys. Anything not listed here
+// (credentials, security answers, future sensitive fields) is never returned.
+const PUBLIC_SETTINGS_KEYS = [
+  "profile", "logo", "loginLogo", "cv", "featuredVideo",
+  "projects", "education", "skills", "communication", "languages",
+  "workTogether", "whatsapp", "map", "colors", "typography", "siteContent",
+] as const;
+
 function stripSecurity(settings: AdminSettings) {
-  const { security, ...safe } = settings as AdminSettings & { security?: unknown };
+  const source = settings as unknown as Record<string, unknown>;
+  const safe: Record<string, unknown> = {};
+  for (const key of PUBLIC_SETTINGS_KEYS) {
+    if (key in source) safe[key] = source[key];
+  }
   return safe;
 }
 

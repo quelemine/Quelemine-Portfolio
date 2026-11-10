@@ -36,8 +36,45 @@ const MIN_H = 400;
 const MAX_W = 600;
 const MAX_H = 800;
 
+// ─── Security guard ────────────────────────────────────────────
+// Credential/sensitive-information terms. Any mention is refused — the bot
+// has no legitimate reason to discuss these on a public portfolio.
+const SENSITIVE_RE = /(password|passwd|passcode|api[-_ ]?keys?|secrets?|tokens?|credentials?|private[-_ ]?keys?|ssh|sftp|\bftp\b|smtp|telnet|\.env\b|environment variables?|env vars?|session cookies?|security questions?|webhook|connection strings?|database passwords?|admin passwords?|login credentials?|auth tokens?|jwt|salts?|hashes?\b|encryption keys?|root access|server (password|credentials|access)|hosting (account|credentials|password))/i;
+
+// Prompt-injection / instruction-override patterns.
+const INJECTION_RE = /(ignore (all |any |the |your )?(previous|above|prior|earlier|preceding) (instructions|rules|prompts?)|disregard (all |any |the |your )?(previous|above|prior|earlier|instructions|rules)|system prompt|you are now|act as|pretend (to be|you are|you're)|roleplay|role-play|jailbreak|\bDAN\b|developer mode|do anything now|override (your|the|all) (instructions|rules|programming|guidelines)|new (set of )?instructions|from now on (you|your)|reveal (your|the) (instructions|prompt|rules|system)|what('?s| is| are) your (system )?prompt|print (your )?(system )?prompt|repeat (everything|all|the) (above|previous|instructions)|summarize (the |your )?(above|previous|system|instructions|files|code|config|settings)|translate (the |your )?(above|previous|instructions)|encode (the |your )?(above|previous|instructions)|base64.{0,20}(instructions|prompt|secret|password))/i;
+
+// Role-play / impersonation aimed at gaining privileged information.
+const IMPERSONATION_RE = /(pretend|act|imagine|roleplay|role-play|behave).{0,40}(admin|owner|developer|isaac|hacker|root|system)|\b(i am|i'm|im)\b.{0,30}\b(the |your )?(admin|owner|developer|isaac quelemine|site owner|website owner)\b/i;
+
+const REFUSAL_TEXT = "For security reasons, I cannot disclose passwords, API keys, authentication tokens, private configuration, or other sensitive system information. Please use the authorized account recovery or credential management process.";
+
+function decodeCandidate(input: string): string[] {
+  // Try to decode base64/hex-looking blobs so encoded injection attempts are caught too
+  const candidates: string[] = [];
+  const tokens = input.match(/[A-Za-z0-9+/=_-]{20,}/g) || [];
+  for (const t of tokens.slice(0, 5)) {
+    try {
+      const std = t.replace(/-/g, "+").replace(/_/g, "/");
+      const decoded = atob(std);
+      if (/[a-z]/i.test(decoded)) candidates.push(decoded);
+    } catch { /* not base64 */ }
+  }
+  return candidates;
+}
+
+function isSensitiveRequest(input: string): boolean {
+  const text = input.toLowerCase();
+  if (SENSITIVE_RE.test(text) || INJECTION_RE.test(text) || IMPERSONATION_RE.test(text)) return true;
+  return decodeCandidate(text).some((d) => SENSITIVE_RE.test(d) || INJECTION_RE.test(d));
+}
+
 function getBotReply(input: string, name: string, contact: BotContact): { text: string; whatsappMsg?: string; attachment?: { name: string; url: string; type: string } } {
   const q = input.toLowerCase().trim();
+
+  if (isSensitiveRequest(q)) {
+    return { text: REFUSAL_TEXT };
+  }
 
   if (/who is isaac|tell me about isaac|about isaac|introduce|isaac quelemine|quelemine|what do you know about (him|isaac)|tell me (more|something) about (him|isaac)/.test(q))
     return {
