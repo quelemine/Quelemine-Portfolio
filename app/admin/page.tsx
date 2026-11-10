@@ -280,6 +280,47 @@ export default function AdminDashboard() {
     }
   };
 
+  // Uploads an image asset (e.g. project image) and returns its public URL
+  const handleAssetUpload = async (file: File): Promise<string | null> => {
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      showNotification('error', 'Only JPG, JPEG, PNG and WEBP images are allowed');
+      return null;
+    }
+    if (file.size > UPLOAD_LIMITS.image) {
+      showNotification('error', `Image must be ${formatLimit(UPLOAD_LIMITS.image)} or smaller`);
+      return null;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', 'project');
+
+    try {
+      const response = await adminFetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        showNotification('error', data.error || 'Failed to upload image');
+        return null;
+      }
+      return data.url as string;
+    } catch (error) {
+      showNotification('error', 'Failed to upload image');
+      return null;
+    }
+  };
+
+  // Deletes an uploaded /api/files/<id> asset; the server refuses if still referenced
+  const cleanupUploadedImage = (url?: string) => {
+    if (!url || !url.startsWith('/api/files/')) return;
+    const id = url.slice('/api/files/'.length);
+    adminFetch(`/api/admin/files?id=${id}`, { method: 'DELETE' }).catch(() => {});
+  };
+
   const handlePasswordChange = async (currentPassword: string, newPassword: string, newUsername: string): Promise<boolean> => {
     try {
       const response = await adminFetch('/api/admin/password', {
@@ -308,6 +349,9 @@ export default function AdminDashboard() {
     }
     try {
       const method = editingProject ? 'PUT' : 'POST';
+      const previous = editingProject
+        ? settings?.projects?.find((p: Project) => p.id === project.id)
+        : null;
 
       const response = await adminFetch('/api/admin/projects', {
         method,
@@ -317,6 +361,10 @@ export default function AdminDashboard() {
       const data = await response.json().catch(() => ({}));
 
       if (response.ok) {
+        // Clean up the replaced image if it is an uploaded file no longer referenced
+        if (previous?.image && previous.image !== project.image) {
+          cleanupUploadedImage(previous.image);
+        }
         await loadSettings();
         setEditingProject(null);
         showNotification('success', 'Project saved successfully');
@@ -332,6 +380,7 @@ export default function AdminDashboard() {
 
   const handleProjectDelete = async (id: number) => {
     if (!confirm('Delete this project?')) return;
+    const doomed = settings?.projects?.find((p: Project) => p.id === id);
     try {
       const response = await adminFetch(`/api/admin/projects?id=${id}`, {
         method: 'DELETE'
@@ -339,6 +388,7 @@ export default function AdminDashboard() {
       const data = await response.json().catch(() => ({}));
 
       if (response.ok) {
+        cleanupUploadedImage(doomed?.image);
         await loadSettings();
         showNotification('success', 'Project deleted successfully');
       } else {
@@ -602,6 +652,8 @@ export default function AdminDashboard() {
                 onSaveProject={handleProjectSave}
                 onDeleteProject={handleProjectDelete}
                 onLoadSiteItems={() => handleSaveSettings({ projects: BUILTIN_PROJECTS })}
+                onUploadImage={handleAssetUpload}
+                onDeleteImage={cleanupUploadedImage}
               />
             )}
             {activeTab === 'education' && (
@@ -1767,9 +1819,12 @@ function PasswordTab({ onChangePassword }: any) {
 }
 
 // Projects Tab
-function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProject, onDeleteProject, onLoadSiteItems }: any) {
+function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProject, onDeleteProject, onLoadSiteItems, onUploadImage, onDeleteImage }: any) {
   const isSiteDefault = !settings?.projects?.length;
   const items: Project[] = isSiteDefault ? BUILTIN_PROJECTS : settings.projects;
+  const [imageUploading, setImageUploading] = useState(false);
+  const projectImageInputRef = useRef<HTMLInputElement>(null);
+  const sessionUploadRef = useRef<string | null>(null);
   const emptyProject: Partial<Project> = {
     title: '',
     description: '',
@@ -1800,8 +1855,11 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
         ? form
         : { ...form, id: 0, technologies: form.technologies ?? [] } as Project;
       const ok = await onSaveProject(payload);
-      if (ok && !editingProject) {
-        setNewProject({ ...emptyProject });
+      if (ok) {
+        sessionUploadRef.current = null;
+        if (!editingProject) {
+          setNewProject({ ...emptyProject });
+        }
       }
     } finally {
       setSaving(false);
@@ -1858,13 +1916,61 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Image URL</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Project Image</label>
             <input
-              type="text"
-              value={form.image ?? ''}
-              onChange={(e) => updateForm({ image: e.target.value })}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              ref={projectImageInputRef}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (!file) return;
+                setImageUploading(true);
+                try {
+                  const url = await onUploadImage(file);
+                  if (url) {
+                    updateForm({ image: url });
+                    sessionUploadRef.current = url;
+                  }
+                } finally {
+                  setImageUploading(false);
+                }
+              }}
             />
+            <div className="flex items-start gap-4">
+              <div className="w-28 h-20 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0">
+                {form.image ? (
+                  <img src={form.image} alt="Project preview" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon size={24} className="text-slate-400" />
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => projectImageInputRef.current?.click()}
+                  disabled={imageUploading}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors w-fit"
+                >
+                  <Upload size={16} />
+                  {imageUploading ? 'Uploading...' : form.image ? 'Replace Image' : 'Upload Image'}
+                </button>
+                {form.image && (
+                  <button
+                    type="button"
+                    onClick={() => updateForm({ image: '' })}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-xs font-medium transition-colors w-fit"
+                  >
+                    <Trash2 size={14} />
+                    Remove
+                  </button>
+                )}
+                <p className="text-xs text-slate-500">JPG, PNG or WEBP, up to {formatLimit(UPLOAD_LIMITS.image)}</p>
+              </div>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Category</label>
@@ -1939,7 +2045,14 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
           </button>
           {editingProject && (
             <button
-              onClick={() => setEditingProject(null)}
+              onClick={() => {
+                // Image uploaded during this edit session was never saved — clean it up
+                if (sessionUploadRef.current && sessionUploadRef.current !== editingProject.image) {
+                  onDeleteImage?.(sessionUploadRef.current);
+                }
+                sessionUploadRef.current = null;
+                setEditingProject(null);
+              }}
               className="flex items-center gap-2 px-6 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors"
             >
               <X size={16} />

@@ -131,6 +131,20 @@ export const mysqlBackend: StorageBackend = {
     return { mime: String(row.mime), size: Number(row.size), data };
   },
 
+  async deleteUpload(id: string) {
+    await ensureTables();
+    await getPool().query("DELETE FROM uploads WHERE id = ?", [id]);
+  },
+
+  async listUploads() {
+    await ensureTables();
+    const [rows] = await getPool().query<mysql.RowDataPacket[]>("SELECT id, created_at FROM uploads");
+    return rows.map((row) => ({
+      id: String(row.id),
+      createdAt: row.created_at ? new Date(row.created_at).getTime() : null,
+    }));
+  },
+
   async checkWritable() {
     try {
       await ensureTables();

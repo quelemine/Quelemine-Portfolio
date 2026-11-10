@@ -21,9 +21,19 @@ async function readJson(file: string): Promise<Record<string, unknown> | null> {
   }
 }
 
-async function readUploadIndex(): Promise<Record<string, { mime: string; size: number }>> {
+interface UploadIndexEntry {
+  mime: string;
+  size: number;
+  createdAt?: number;
+}
+
+async function readUploadIndex(): Promise<Record<string, UploadIndexEntry>> {
   const index = await readJson(UPLOAD_INDEX_FILE);
-  return (index as Record<string, { mime: string; size: number }>) ?? {};
+  return (index as Record<string, UploadIndexEntry>) ?? {};
+}
+
+async function writeUploadIndex(index: Record<string, UploadIndexEntry>) {
+  await fs.writeFile(UPLOAD_INDEX_FILE, JSON.stringify(index, null, 2), "utf-8");
 }
 
 export const fileBackend: StorageBackend = {
@@ -61,8 +71,8 @@ export const fileBackend: StorageBackend = {
     await ensureDir(UPLOAD_DIR);
     await fs.writeFile(path.join(UPLOAD_DIR, upload.id), upload.data);
     const index = await readUploadIndex();
-    index[upload.id] = { mime: upload.mime, size: upload.size };
-    await fs.writeFile(UPLOAD_INDEX_FILE, JSON.stringify(index, null, 2), "utf-8");
+    index[upload.id] = { mime: upload.mime, size: upload.size, createdAt: Date.now() };
+    await writeUploadIndex(index);
   },
 
   async readUpload(id: string): Promise<StoredUpload | null> {
@@ -75,6 +85,23 @@ export const fileBackend: StorageBackend = {
     } catch {
       return null;
     }
+  },
+
+  async deleteUpload(id: string) {
+    const index = await readUploadIndex();
+    if (index[id]) {
+      delete index[id];
+      await writeUploadIndex(index);
+    }
+    await fs.unlink(path.join(UPLOAD_DIR, id)).catch(() => {});
+  },
+
+  async listUploads() {
+    const index = await readUploadIndex();
+    return Object.keys(index).map((id) => ({
+      id,
+      createdAt: index[id].createdAt ?? null,
+    }));
   },
 
   async checkWritable() {

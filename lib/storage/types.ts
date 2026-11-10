@@ -27,6 +27,8 @@ export interface StorageBackend {
   writeCredentials(credentials: StoredCredentials): Promise<void>;
   saveUpload(upload: NewUpload): Promise<void>;
   readUpload(id: string): Promise<StoredUpload | null>;
+  deleteUpload(id: string): Promise<void>;
+  listUploads(): Promise<{ id: string; createdAt: number | null }[]>;
   checkWritable(): Promise<boolean>;
   // Returns the server's max_allowed_packet in bytes, or Infinity when not applicable
   maxPacketBytes(): Promise<number>;
