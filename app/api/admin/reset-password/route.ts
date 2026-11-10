@@ -138,7 +138,8 @@ export async function POST(request: Request) {
         `Your password reset code is: ${code}\n\nIt expires in 10 minutes. If you did not request this, ignore this email.`
       );
       if (!sent) {
-        return NextResponse.json({ error: "Email service is not configured (SMTP_* env vars missing)" }, { status: 503 });
+        console.error("reset-password send: mailer reported failure");
+        return NextResponse.json({ error: "Email service is not configured or failed to send" }, { status: 503 });
       }
       return NextResponse.json({ success: true });
     }

@@ -15,11 +15,20 @@ export async function sendMail(to: string, subject: string, text: string): Promi
     auth: { user, pass },
   });
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || user,
-    to,
-    subject,
-    text,
-  });
-  return true;
+  try {
+    const info = await transporter.sendMail({
+      from: process.env.SMTP_FROM || user,
+      to,
+      subject,
+      text,
+    });
+    // info.accepted/rejected show whether the SMTP server took the message;
+    // never log credentials, codes or message bodies
+    console.log("mail sent:", { accepted: info.accepted?.length ?? 0, rejected: info.rejected?.length ?? 0, response: info.response });
+    return true;
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    console.error("mail send failed:", err?.code, err?.message);
+    return false;
+  }
 }
