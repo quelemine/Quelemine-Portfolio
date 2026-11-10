@@ -19,17 +19,6 @@ export default function AdminDashboard() {
   const [pwInput, setPwInput] = useState("");
   const [pwError, setPwError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [resetStep, setResetStep] = useState<'email' | 'security' | 'new'>('email');
-  const [resetUsername, setResetUsername] = useState("");
-  const [resetSecurityAnswer, setResetSecurityAnswer] = useState("");
-  const [resetNewPassword, setResetNewPassword] = useState("");
-  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
-  const [resetSecurityQuestion, setResetSecurityQuestion] = useState("");
-  const [resetMessage, setResetMessage] = useState("");
-  const [resetError, setResetError] = useState("");
-  const [showResetPassword, setShowResetPassword] = useState(false);
-  const [showResetConfirmPassword, setShowResetConfirmPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [loginLogo, setLoginLogo] = useState("");
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -41,6 +30,12 @@ export default function AdminDashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Check for an existing session so refresh keeps you logged in
+    fetch('/api/admin/session')
+      .then(res => res.json())
+      .then(data => { if (data.authed) setAuthed(true); })
+      .catch(() => {});
+
     // Fetch login logo on component mount (before authentication)
     fetch('/api/admin/settings')
       .then(res => res.json())
@@ -102,80 +97,13 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setResetError("");
-    
-    if (resetStep === 'email') {
-      // Get security question
-      try {
-        const response = await fetch(`/api/admin/reset-password?username=${resetUsername}`);
-        if (response.ok) {
-          const data = await response.json();
-          setResetSecurityQuestion(data.securityQuestion);
-          setResetStep('security');
-        } else {
-          setResetError('Username not found');
-        }
-      } catch (error) {
-        setResetError('Failed to verify username');
-      }
-    } else if (resetStep === 'security') {
-      // Verify security answer
-      try {
-        const response = await fetch('/api/admin/reset-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: resetUsername, securityAnswer: resetSecurityAnswer, newPassword: '' })
-        });
-
-        if (response.ok) {
-          setResetStep('new');
-        } else {
-          const data = await response.json();
-          setResetError(data.error || 'Incorrect security answer');
-        }
-      } catch (error) {
-        setResetError('Failed to verify security answer');
-      }
-    } else if (resetStep === 'new') {
-      // Set new password
-      if (resetNewPassword !== resetConfirmPassword) {
-        setResetError('Passwords do not match');
-        return;
-      }
-      if (resetNewPassword.length < 6) {
-        setResetError('Password must be at least 6 characters');
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/admin/reset-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: resetUsername, securityAnswer: resetSecurityAnswer, newPassword: resetNewPassword })
-        });
-
-        if (response.ok) {
-          setResetMessage('Password reset successfully! You can now login with your new password.');
-          setTimeout(() => {
-            setShowForgotPassword(false);
-            setResetStep('email');
-            setResetUsername("");
-            setResetSecurityAnswer("");
-            setResetNewPassword("");
-            setResetConfirmPassword("");
-            setResetSecurityQuestion("");
-            setResetMessage("");
-            setResetError("");
-          }, 3000);
-        } else {
-          setResetError('Failed to reset password');
-        }
-      } catch (error) {
-        setResetError('Failed to reset password');
-      }
+  const logout = async () => {
+    try {
+      await fetch('/api/admin/logout', { method: 'POST' });
+    } catch (error) {
+      // Ignore errors; clear local state regardless
     }
+    setAuthed(false);
   };
 
   const showNotification = (type: 'success' | 'error', message: string) => {
@@ -377,8 +305,7 @@ export default function AdminDashboard() {
             <p className="text-slate-400 text-sm mt-1">Quelemine's website</p>
           </div>
           
-          {!showForgotPassword ? (
-            <form onSubmit={login} className="space-y-4">
+          <form onSubmit={login} className="space-y-4">
               <input
                 type="text"
                 value={usernameInput}
@@ -407,110 +334,7 @@ export default function AdminDashboard() {
               <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
                 Sign In
               </button>
-              <button
-                type="button"
-                onClick={() => setShowForgotPassword(true)}
-                className="w-full py-2 text-slate-400 hover:text-blue-400 text-xs transition-colors"
-              >
-                Forgot password?
-              </button>
             </form>
-          ) : (
-            <form onSubmit={handleForgotPassword} className="space-y-4">
-              {resetStep === 'email' && (
-                <>
-                  <input
-                    type="text"
-                    value={resetUsername}
-                    onChange={(e) => setResetUsername(e.target.value)}
-                    placeholder="Enter your username"
-                    autoFocus
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-colors"
-                  />
-                  {resetError && <p className="text-red-400 text-xs">{resetError}</p>}
-                  <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
-                    Continue
-                  </button>
-                </>
-              )}
-              {resetStep === 'security' && (
-                <>
-                  <p className="text-slate-300 text-sm">Security Question: {resetSecurityQuestion}</p>
-                  <input
-                    type="text"
-                    value={resetSecurityAnswer}
-                    onChange={(e) => setResetSecurityAnswer(e.target.value)}
-                    placeholder="Enter your answer"
-                    autoFocus
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-colors"
-                  />
-                  {resetError && <p className="text-red-400 text-xs">{resetError}</p>}
-                  <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
-                    Verify Answer
-                  </button>
-                </>
-              )}
-              {resetStep === 'new' && (
-                <>
-                  <div className="relative">
-                    <input
-                      type={showResetPassword ? "text" : "password"}
-                      value={resetNewPassword}
-                      onChange={(e) => setResetNewPassword(e.target.value)}
-                      placeholder="New password"
-                      autoFocus
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-colors pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowResetPassword(!showResetPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                    >
-                      {showResetPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type={showResetConfirmPassword ? "text" : "password"}
-                      value={resetConfirmPassword}
-                      onChange={(e) => setResetConfirmPassword(e.target.value)}
-                      placeholder="Confirm new password"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-colors pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowResetConfirmPassword(!showResetConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                    >
-                      {showResetConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                  {resetError && <p className="text-red-400 text-xs">{resetError}</p>}
-                  {resetMessage && <p className="text-green-400 text-xs">{resetMessage}</p>}
-                  <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
-                    Reset Password
-                  </button>
-                </>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setShowForgotPassword(false);
-                  setResetStep('email');
-                  setResetUsername("");
-                  setResetSecurityAnswer("");
-                  setResetNewPassword("");
-                  setResetConfirmPassword("");
-                  setResetSecurityQuestion("");
-                  setResetMessage("");
-                  setResetError("");
-                }}
-                className="w-full py-2 text-slate-400 hover:text-blue-400 text-xs transition-colors"
-              >
-                Back to login
-              </button>
-            </form>
-          )}
         </motion.div>
       </div>
     );
@@ -539,7 +363,7 @@ export default function AdminDashboard() {
           <h1 className="text-white font-bold text-lg truncate">Admin Panel</h1>
           <p className="text-slate-400 text-xs truncate">Quelemine Website · Admin View</p>
         </div>
-        <button onClick={() => setAuthed(false)} className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors flex-shrink-0">
+        <button onClick={logout} className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors flex-shrink-0">
           <LogOut size={15} /> Sign out
         </button>
       </div>

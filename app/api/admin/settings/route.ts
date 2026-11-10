@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import type { AdminSettings } from "@/types/admin";
+import { requireAdmin } from "@/lib/adminAuth";
 
 const SETTINGS_FILE = path.join(process.cwd(), 'data', 'adminSettings.json');
 
@@ -130,6 +131,9 @@ export async function GET() {
 // PUT - Update settings
 export async function PUT(request: Request) {
   try {
+    const denied = requireAdmin(request);
+    if (denied) return denied;
+
     const updates = await request.json();
     const currentSettings = await readSettings();
     

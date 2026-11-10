@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import type { AdminSettings, Project } from "@/types/admin";
+import { requireAdmin } from "@/lib/adminAuth";
 
 const SETTINGS_FILE = path.join(process.cwd(), 'data', 'adminSettings.json');
 
@@ -68,8 +69,11 @@ async function writeSettings(settings: AdminSettings): Promise<void> {
 }
 
 // GET - Fetch all projects
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const denied = requireAdmin(request);
+    if (denied) return denied;
+
     const settings = await readSettings();
     return NextResponse.json(settings.projects);
   } catch (error) {
@@ -80,6 +84,9 @@ export async function GET() {
 // POST - Add new project
 export async function POST(request: Request) {
   try {
+    const denied = requireAdmin(request);
+    if (denied) return denied;
+
     const project = await request.json();
     const settings = await readSettings();
     
@@ -99,6 +106,9 @@ export async function POST(request: Request) {
 // PUT - Update project
 export async function PUT(request: Request) {
   try {
+    const denied = requireAdmin(request);
+    if (denied) return denied;
+
     const updatedProject = await request.json();
     const settings = await readSettings();
     
@@ -119,6 +129,9 @@ export async function PUT(request: Request) {
 // DELETE - Delete project
 export async function DELETE(request: Request) {
   try {
+    const denied = requireAdmin(request);
+    if (denied) return denied;
+
     const { searchParams } = new URL(request.url);
     const id = parseInt(searchParams.get('id') || '0');
     

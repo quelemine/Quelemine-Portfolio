@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import type { AdminSettings } from "@/types/admin";
+import { requireAdmin } from "@/lib/adminAuth";
 
 const SETTINGS_FILE = path.join(process.cwd(), 'data', 'adminSettings.json');
 
@@ -70,6 +71,9 @@ async function writeSettings(settings: AdminSettings): Promise<void> {
 // POST - Verify current password and set new password/username/security
 export async function POST(request: Request) {
   try {
+    const denied = requireAdmin(request);
+    if (denied) return denied;
+
     const { currentPassword, newPassword, newUsername, securityQuestion, securityAnswer } = await request.json();
 
     if (!currentPassword) {
