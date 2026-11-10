@@ -8,6 +8,7 @@ import {
   Eye, EyeOff
 } from "lucide-react";
 import { getAllSessions, clearAllSessions, deleteSession, type ChatSession } from "@/lib/chatLogger";
+import { UPLOAD_LIMITS, formatLimit } from "@/lib/uploadLimits";
 import type { AdminSettings, Project, Education } from "@/types/admin";
 
 
@@ -18,17 +19,19 @@ export default function AdminDashboard() {
   const [checking, setChecking] = useState(true);
   const [usernameInput, setUsernameInput] = useState("");
   const [pwInput, setPwInput] = useState("");
-  const [pwError, setPwError] = useState(false);
+  const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [loginLogo, setLoginLogo] = useState("");
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [settings, setSettings] = useState<AdminSettings | null>(null);
+  const [settingsError, setSettingsError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editingEducation, setEditingEducation] = useState<Education | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Check for an existing session so refresh keeps you logged in
@@ -61,24 +64,31 @@ export default function AdminDashboard() {
     }
   }, [authed, activeTab]);
 
-  const loadSettings = async () => {
+  const loadSettings = async (): Promise<boolean> => {
     try {
-      const response = await fetch('/api/admin/settings');
+      const response = await adminFetch('/api/admin/settings');
       if (response.ok) {
         const data = await response.json();
         setSettings(data);
+        setSettingsError(false);
         // Update login logo when settings are loaded
         if (data.loginLogo?.url) {
           setLoginLogo(data.loginLogo.url);
         }
+        return true;
       }
+      setSettingsError(true);
+      return false;
     } catch (error) {
+      setSettingsError(true);
       showNotification('error', 'Failed to load settings');
+      return false;
     }
   };
 
   const login = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError("");
     try {
       const response = await fetch('/api/admin/login', {
         method: 'POST',
@@ -88,13 +98,20 @@ export default function AdminDashboard() {
 
       if (response.ok) {
         setAuthed(true);
-        setPwError(false);
+        setPwInput("");
       } else {
-        setPwError(true);
+        const data = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          setLoginError('Invalid username or password.');
+        } else if (response.status === 429) {
+          setLoginError('Too many attempts. Please try again later.');
+        } else {
+          setLoginError(data.error || 'Server error. Please try again.');
+        }
         setPwInput("");
       }
     } catch (error) {
-      setPwError(true);
+      setLoginError('Server error. Please try again.');
       setPwInput("");
     }
   };
@@ -108,163 +125,212 @@ export default function AdminDashboard() {
     setAuthed(false);
   };
 
-  const showNotification = (type: 'success' | 'error', message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 3000);
+  const adminFetch = async (input: RequestInfo, init?: RequestInit): Promise<Response> => {
+    const response = await fetch(input, init);
+    if (response.status === 401) {
+      setAuthed(false);
+      showNotification('error', 'Session expired, please sign in again');
+    }
+    return response;
   };
 
-  const handleSaveSettings = async (updates: Partial<AdminSettings>) => {
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    if (notificationTimer.current) {
+      clearTimeout(notificationTimer.current);
+    }
+    notificationTimer.current = setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleSaveSettings = async (updates: Partial<AdminSettings>): Promise<boolean> => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/settings', {
+      const response = await adminFetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
       });
-      
+      const data = await response.json().catch(() => ({}));
+
       if (response.ok) {
-        const data = await response.json();
         setSettings(data);
         showNotification('success', 'Settings saved successfully');
-      } else {
-        showNotification('error', 'Failed to save settings');
+        return true;
       }
+      showNotification('error', data.error || 'Failed to save settings');
+      return false;
     } catch (error) {
       showNotification('error', 'Failed to save settings');
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFileUpload = async (file: File, type: 'profile' | 'cv' | 'about' | 'logo' | 'loginLogo' | 'video') => {
+  const handleFileUpload = async (file: File, type: 'profile' | 'cv' | 'about' | 'logo' | 'loginLogo' | 'video'): Promise<boolean> => {
+    const limit = type === 'cv' ? UPLOAD_LIMITS.pdf : type === 'video' ? UPLOAD_LIMITS.video : UPLOAD_LIMITS.image;
+    if (file.size > limit) {
+      showNotification('error', `File must be ${formatLimit(limit)} or smaller`);
+      return false;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', type);
 
     try {
-      const response = await fetch('/api/admin/upload', {
+      const response = await adminFetch('/api/admin/upload', {
         method: 'POST',
         body: formData
       });
+      const data = await response.json().catch(() => ({}));
 
-      if (response.ok) {
-        const data = await response.json();
-        if (type === 'profile') {
-          await handleSaveSettings({ profile: { ...settings!.profile, profileImage: data.url } });
-        } else if (type === 'cv') {
-          await handleSaveSettings({ cv: { ...settings!.cv, url: data.url, filename: data.filename, uploadDate: new Date().toISOString() } });
-        } else if (type === 'about') {
-          await handleSaveSettings({ siteContent: { ...settings!.siteContent, about: { ...settings!.siteContent.about, image: data.url } } });
-        } else if (type === 'logo') {
-          await handleSaveSettings({ logo: { ...settings!.logo, url: data.url } });
-        } else if (type === 'loginLogo') {
-          await handleSaveSettings({ loginLogo: { ...settings!.loginLogo, url: data.url } });
-        } else if (type === 'video') {
-          await handleSaveSettings({ featuredVideo: { ...(settings!.featuredVideo ?? {}), url: data.url, filename: data.filename } });
-        }
-        // Reload settings to get the updated data
-        await loadSettings();
-        showNotification('success', 'File uploaded successfully');
-      } else {
-        showNotification('error', 'Failed to upload file');
+      if (!response.ok) {
+        showNotification('error', data.error || 'Failed to upload file');
+        return false;
       }
+
+      let saved = true;
+      if (type === 'profile') {
+        saved = await handleSaveSettings({ profile: { ...settings!.profile, profileImage: data.url } });
+      } else if (type === 'cv') {
+        saved = await handleSaveSettings({ cv: { ...settings!.cv, url: data.url, filename: data.filename, uploadDate: new Date().toISOString() } });
+      } else if (type === 'about') {
+        saved = await handleSaveSettings({ siteContent: { ...settings!.siteContent, about: { ...settings!.siteContent.about, image: data.url } } });
+      } else if (type === 'logo') {
+        saved = await handleSaveSettings({ logo: { ...settings!.logo, url: data.url } });
+      } else if (type === 'loginLogo') {
+        saved = await handleSaveSettings({ loginLogo: { ...settings!.loginLogo, url: data.url } });
+      } else if (type === 'video') {
+        saved = await handleSaveSettings({ featuredVideo: { ...(settings!.featuredVideo ?? {}), url: data.url, filename: data.filename } });
+      }
+
+      if (!saved) {
+        // handleSaveSettings already showed the server's error message
+        return false;
+      }
+
+      // Reload settings to get the updated data
+      await loadSettings();
+      showNotification('success', 'File uploaded successfully');
+      return true;
     } catch (error) {
       showNotification('error', 'Failed to upload file');
+      return false;
     }
   };
 
-  const handlePasswordChange = async (currentPassword: string, newPassword: string, newUsername: string, securityQuestion: string, securityAnswer: string) => {
+  const handlePasswordChange = async (currentPassword: string, newPassword: string, newUsername: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/admin/password', {
+      const response = await adminFetch('/api/admin/password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword, newUsername, securityQuestion, securityAnswer })
+        body: JSON.stringify({ currentPassword, newPassword, newUsername })
       });
+      const data = await response.json().catch(() => ({}));
 
       if (response.ok) {
         showNotification('success', 'Credentials updated successfully');
-      } else {
-        showNotification('error', 'Failed to update credentials');
+        return true;
       }
+      showNotification('error', data.error || 'Failed to update credentials');
+      return false;
     } catch (error) {
       showNotification('error', 'Failed to update credentials');
+      return false;
     }
   };
 
-  const handleProjectSave = async (project: Project) => {
+  const handleProjectSave = async (project: Project): Promise<boolean> => {
+    if (!project.title?.trim() || !project.description?.trim()) {
+      showNotification('error', 'Title and description are required');
+      return false;
+    }
     try {
-      const url = editingProject ? '/api/admin/projects' : '/api/admin/projects';
       const method = editingProject ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
+
+      const response = await adminFetch('/api/admin/projects', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(project)
       });
+      const data = await response.json().catch(() => ({}));
 
       if (response.ok) {
         await loadSettings();
         setEditingProject(null);
         showNotification('success', 'Project saved successfully');
-      } else {
-        showNotification('error', 'Failed to save project');
+        return true;
       }
+      showNotification('error', data.error || 'Failed to save project');
+      return false;
     } catch (error) {
       showNotification('error', 'Failed to save project');
+      return false;
     }
   };
 
   const handleProjectDelete = async (id: number) => {
+    if (!confirm('Delete this project?')) return;
     try {
-      const response = await fetch(`/api/admin/projects?id=${id}`, {
+      const response = await adminFetch(`/api/admin/projects?id=${id}`, {
         method: 'DELETE'
       });
+      const data = await response.json().catch(() => ({}));
 
       if (response.ok) {
         await loadSettings();
         showNotification('success', 'Project deleted successfully');
       } else {
-        showNotification('error', 'Failed to delete project');
+        showNotification('error', data.error || 'Failed to delete project');
       }
     } catch (error) {
       showNotification('error', 'Failed to delete project');
     }
   };
 
-  const handleEducationSave = async (education: Education) => {
+  const handleEducationSave = async (education: Education): Promise<boolean> => {
+    if (!education.degree?.trim() || !education.institution?.trim()) {
+      showNotification('error', 'Degree and institution are required');
+      return false;
+    }
     try {
-      const url = editingEducation ? '/api/admin/education' : '/api/admin/education';
       const method = editingEducation ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
+
+      const response = await adminFetch('/api/admin/education', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(education)
       });
+      const data = await response.json().catch(() => ({}));
 
       if (response.ok) {
         await loadSettings();
         setEditingEducation(null);
         showNotification('success', 'Education saved successfully');
-      } else {
-        showNotification('error', 'Failed to save education');
+        return true;
       }
+      showNotification('error', data.error || 'Failed to save education');
+      return false;
     } catch (error) {
       showNotification('error', 'Failed to save education');
+      return false;
     }
   };
 
   const handleEducationDelete = async (id: number) => {
+    if (!confirm('Delete this education entry?')) return;
     try {
-      const response = await fetch(`/api/admin/education?id=${id}`, {
+      const response = await adminFetch(`/api/admin/education?id=${id}`, {
         method: 'DELETE'
       });
+      const data = await response.json().catch(() => ({}));
 
       if (response.ok) {
         await loadSettings();
         showNotification('success', 'Education deleted successfully');
       } else {
-        showNotification('error', 'Failed to delete education');
+        showNotification('error', data.error || 'Failed to delete education');
       }
     } catch (error) {
       showNotification('error', 'Failed to delete education');
@@ -321,6 +387,8 @@ export default function AdminDashboard() {
           <form onSubmit={login} className="space-y-4">
               <input
                 type="text"
+                name="username"
+                autoComplete="username"
                 value={usernameInput}
                 onChange={(e) => setUsernameInput(e.target.value)}
                 placeholder="Username"
@@ -330,6 +398,8 @@ export default function AdminDashboard() {
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
+                  name="password"
+                  autoComplete="current-password"
                   value={pwInput}
                   onChange={(e) => setPwInput(e.target.value)}
                   placeholder="Password"
@@ -343,7 +413,7 @@ export default function AdminDashboard() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              {pwError && <p className="text-red-400 text-xs">Invalid username or password.</p>}
+              {loginError && <p className="text-red-400 text-xs">{loginError}</p>}
               <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
                 Sign In
               </button>
@@ -404,6 +474,18 @@ export default function AdminDashboard() {
 
         {/* Main content */}
         <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden min-w-0">
+          {settingsError && !settings ? (
+            <div className="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-sm max-w-lg mx-auto mt-10">
+              <p className="text-slate-700 font-medium mb-2">Failed to load settings</p>
+              <p className="text-slate-500 text-sm mb-6">The admin settings could not be loaded from the server.</p>
+              <button
+                onClick={() => { setSettingsError(false); loadSettings(); }}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
           <AnimatePresence mode="wait">
             {activeTab === 'dashboard' && (
               <DashboardTab key="dashboard" sessions={sessions} />
@@ -492,6 +574,7 @@ export default function AdminDashboard() {
                 key="content" 
                 settings={settings} 
                 onSave={handleSaveSettings}
+                onFileUpload={handleFileUpload}
                 loading={loading}
               />
             )}
@@ -504,6 +587,7 @@ export default function AdminDashboard() {
               />
             )}
           </AnimatePresence>
+          )}
         </div>
       </div>
 
@@ -701,10 +785,13 @@ function ChatLogsTab({ sessions, onClearAll, onDeleteSession }: { sessions: Chat
 function ProfileTab({ settings, onFileUpload, onSave, loading }: any) {
   const [profileData, setProfileData] = useState(settings?.profile || {});
   const [aboutImageData, setAboutImageData] = useState(settings?.siteContent?.about?.image || '');
+  const profileInitialized = useRef(false);
 
+  // Only hydrate the form once so later settings reloads don't wipe unsaved edits
   useEffect(() => {
-    if (settings?.profile) {
+    if (!profileInitialized.current && settings?.profile) {
       setProfileData(settings.profile);
+      profileInitialized.current = true;
     }
     if (settings?.siteContent?.about?.image) {
       setAboutImageData(settings.siteContent.about.image);
@@ -825,21 +912,12 @@ function ProfileTab({ settings, onFileUpload, onSave, loading }: any) {
 
         {/* Profile Information */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">First Name</label>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
             <input
               type="text"
-              value={profileData.name?.split(' ')[0] || ''}
-              onChange={(e) => setProfileData({ ...profileData, name: `${e.target.value} ${profileData.name?.split(' ').slice(1).join(' ') || ''}` })}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Last Name</label>
-            <input
-              type="text"
-              value={profileData.name?.split(' ').slice(1).join(' ') || ''}
-              onChange={(e) => setProfileData({ ...profileData, name: `${profileData.name?.split(' ')[0] || ''} ${e.target.value}` })}
+              value={profileData.name || ''}
+              onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
             />
           </div>
@@ -1004,7 +1082,7 @@ function LogoTab({ settings, onFileUpload, onSave, loading }: any) {
           <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
             <input
               type="file"
-              accept="image/*"
+              accept=".jpg,.jpeg,.png,.gif,.webp,.bmp"
               onChange={handleFileChange}
               className="hidden"
               id="logo-upload"
@@ -1015,7 +1093,7 @@ function LogoTab({ settings, onFileUpload, onSave, loading }: any) {
             >
               <Upload size={32} className="mx-auto text-slate-400 mb-3" />
               <p className="text-sm text-slate-600 mb-1">Click to upload or drag and drop</p>
-              <p className="text-xs text-slate-400">PNG, JPG, SVG files</p>
+              <p className="text-xs text-slate-400">JPG, PNG, GIF, WebP or BMP · Maximum {formatLimit(UPLOAD_LIMITS.image)}</p>
             </label>
           </div>
         </div>
@@ -1051,7 +1129,7 @@ function LogoTab({ settings, onFileUpload, onSave, loading }: any) {
           <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
             <input
               type="file"
-              accept="image/*"
+              accept=".jpg,.jpeg,.png,.gif,.webp,.bmp"
               onChange={handleLoginLogoChange}
               className="hidden"
               id="login-logo-upload"
@@ -1062,7 +1140,7 @@ function LogoTab({ settings, onFileUpload, onSave, loading }: any) {
             >
               <Upload size={32} className="mx-auto text-slate-400 mb-3" />
               <p className="text-sm text-slate-600 mb-1">Click to upload or drag and drop</p>
-              <p className="text-xs text-slate-400">PNG, JPG, SVG files</p>
+              <p className="text-xs text-slate-400">JPG, PNG, GIF, WebP or BMP · Maximum {formatLimit(UPLOAD_LIMITS.image)}</p>
             </label>
           </div>
         </div>
@@ -1354,6 +1432,12 @@ function VideoTab({ settings, onFileUpload, onSave, loading }: any) {
   const [title, setTitle] = useState(settings?.featuredVideo?.title || '');
   const [description, setDescription] = useState(settings?.featuredVideo?.description || '');
 
+  // Sync title/description when settings load or change
+  useEffect(() => {
+    setTitle(settings?.featuredVideo?.title || '');
+    setDescription(settings?.featuredVideo?.description || '');
+  }, [settings?.featuredVideo?.title, settings?.featuredVideo?.description]);
+
   if (!settings) return <div className="text-slate-500">Loading...</div>;
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1390,7 +1474,7 @@ function VideoTab({ settings, onFileUpload, onSave, loading }: any) {
         <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
           <input
             type="file"
-            accept="video/mp4,video/webm,video/ogg"
+            accept=".mp4"
             onChange={handleFileChange}
             className="hidden"
             id="featured-video-upload"
@@ -1398,7 +1482,7 @@ function VideoTab({ settings, onFileUpload, onSave, loading }: any) {
           <label htmlFor="featured-video-upload" className="cursor-pointer">
             <Video size={32} className="mx-auto text-slate-400 mb-3" />
             <p className="text-sm text-slate-600 mb-1">Click to upload a video</p>
-            <p className="text-xs text-slate-400">MP4, WebM, or Ogg · Maximum 100 MB</p>
+            <p className="text-xs text-slate-400">MP4 only · Maximum {formatLimit(UPLOAD_LIMITS.video)}</p>
           </label>
         </div>
 
@@ -1448,7 +1532,7 @@ function VideoTab({ settings, onFileUpload, onSave, loading }: any) {
 }
 
 // Password Tab
-function PasswordTab({ onChangePassword, settings }: any) {
+function PasswordTab({ onChangePassword }: any) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -1456,18 +1540,10 @@ function PasswordTab({ onChangePassword, settings }: any) {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newUsername, setNewUsername] = useState('');
-  const [securityQuestion, setSecurityQuestion] = useState('');
-  const [securityAnswer, setSecurityAnswer] = useState('');
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (settings?.security) {
-      setSecurityQuestion(settings.security.securityQuestion || '');
-      setSecurityAnswer(settings.security.securityAnswer || '');
-    }
-  }, [settings]);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -1476,16 +1552,23 @@ function PasswordTab({ onChangePassword, settings }: any) {
       return;
     }
 
-    if (newPassword && newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (newPassword && newPassword.length < 12) {
+      setError('Password must be at least 12 characters');
       return;
     }
 
-    onChangePassword(currentPassword, newPassword, newUsername, securityQuestion, securityAnswer);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setNewUsername('');
+    setSaving(true);
+    try {
+      const ok = await onChangePassword(currentPassword, newPassword, newUsername);
+      if (ok) {
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setNewUsername('');
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -1571,33 +1654,14 @@ function PasswordTab({ onChangePassword, settings }: any) {
               </div>
             </div>
           )}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Security Question</label>
-            <input
-              type="text"
-              value={securityQuestion}
-              onChange={(e) => setSecurityQuestion(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="e.g., What is your mother's maiden name?"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Security Answer</label>
-            <input
-              type="text"
-              value={securityAnswer}
-              onChange={(e) => setSecurityAnswer(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Your answer"
-            />
-          </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
-            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             <Lock size={16} />
-            Update Credentials
+            {saving ? 'Updating...' : 'Update Credentials'}
           </button>
         </form>
       </div>
@@ -1607,46 +1671,47 @@ function PasswordTab({ onChangePassword, settings }: any) {
 
 // Projects Tab
 function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProject, onDeleteProject }: any) {
-  const [newProject, setNewProject] = useState<Partial<Project>>({
+  const emptyProject: Partial<Project> = {
     title: '',
     description: '',
     image: '',
     technologies: [],
     category: 'fullstack',
+    github: '',
     demo: '',
     featured: false,
     finished: true
-  });
+  };
+  const [newProject, setNewProject] = useState<Partial<Project>>(emptyProject);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  const form = (editingProject ?? newProject) as Project;
+  const updateForm = (patch: Partial<Project>) => {
     if (editingProject) {
-      onSaveProject(editingProject);
-    } else if (newProject.title && newProject.description) {
-      onSaveProject({
-        ...newProject,
-        id: 0,
-        technologies: newProject.technologies || []
-      } as Project);
-      setNewProject({
-        title: '',
-        description: '',
-        image: '',
-        technologies: [],
-        category: 'fullstack',
-        demo: '',
-        featured: false,
-        finished: true
-      });
+      setEditingProject({ ...editingProject, ...patch });
+    } else {
+      setNewProject({ ...newProject, ...patch });
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload = editingProject
+        ? form
+        : { ...form, id: 0, technologies: form.technologies ?? [] } as Project;
+      const ok = await onSaveProject(payload);
+      if (ok && !editingProject) {
+        setNewProject({ ...emptyProject });
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleTechnologiesChange = (value: string) => {
     const technologies = value.split(',').map(t => t.trim()).filter(t => t);
-    if (editingProject) {
-      setEditingProject({ ...editingProject, technologies });
-    } else {
-      setNewProject({ ...newProject, technologies });
-    }
+    updateForm({ technologies });
   };
 
   if (!settings) return <div className="text-slate-500">Loading...</div>;
@@ -1679,28 +1744,16 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
             <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
             <input
               type="text"
-              value={editingProject?.title || newProject.title}
-              onChange={(e) => {
-                if (editingProject) {
-                  setEditingProject({ ...editingProject, title: e.target.value });
-                } else {
-                  setNewProject({ ...newProject, title: e.target.value });
-                }
-              }}
+              value={form.title ?? ''}
+              onChange={(e) => updateForm({ title: e.target.value })}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
             />
           </div>
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
             <textarea
-              value={editingProject?.description || newProject.description}
-              onChange={(e) => {
-                if (editingProject) {
-                  setEditingProject({ ...editingProject, description: e.target.value });
-                } else {
-                  setNewProject({ ...newProject, description: e.target.value });
-                }
-              }}
+              value={form.description ?? ''}
+              onChange={(e) => updateForm({ description: e.target.value })}
               rows={3}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
             />
@@ -1709,28 +1762,16 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
             <label className="block text-sm font-medium text-slate-700 mb-2">Image URL</label>
             <input
               type="text"
-              value={editingProject?.image || newProject.image}
-              onChange={(e) => {
-                if (editingProject) {
-                  setEditingProject({ ...editingProject, image: e.target.value });
-                } else {
-                  setNewProject({ ...newProject, image: e.target.value });
-                }
-              }}
+              value={form.image ?? ''}
+              onChange={(e) => updateForm({ image: e.target.value })}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Category</label>
             <select
-              value={editingProject?.category || newProject.category}
-              onChange={(e) => {
-                if (editingProject) {
-                  setEditingProject({ ...editingProject, category: e.target.value as any });
-                } else {
-                  setNewProject({ ...newProject, category: e.target.value as any });
-                }
-              }}
+              value={form.category ?? 'fullstack'}
+              onChange={(e) => updateForm({ category: e.target.value as any })}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
             >
               <option value="frontend">Frontend</option>
@@ -1743,7 +1784,7 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
             <label className="block text-sm font-medium text-slate-700 mb-2">Technologies (comma-separated)</label>
             <input
               type="text"
-              value={(editingProject?.technologies || newProject.technologies || []).join(', ')}
+              value={(form.technologies ?? []).join(', ')}
               onChange={(e) => handleTechnologiesChange(e.target.value)}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
               placeholder="React, Node.js, MongoDB"
@@ -1753,14 +1794,8 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
             <label className="block text-sm font-medium text-slate-700 mb-2">Demo URL</label>
             <input
               type="text"
-              value={editingProject?.demo || newProject.demo}
-              onChange={(e) => {
-                if (editingProject) {
-                  setEditingProject({ ...editingProject, demo: e.target.value });
-                } else {
-                  setNewProject({ ...newProject, demo: e.target.value });
-                }
-              }}
+              value={form.demo ?? ''}
+              onChange={(e) => updateForm({ demo: e.target.value })}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
             />
           </div>
@@ -1768,12 +1803,8 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
             <label className="block text-sm font-medium text-slate-700 mb-2">GitHub URL (optional)</label>
             <input
               type="text"
-              value={editingProject?.github || ''}
-              onChange={(e) => {
-                if (editingProject) {
-                  setEditingProject({ ...editingProject, github: e.target.value });
-                }
-              }}
+              value={form.github ?? ''}
+              onChange={(e) => updateForm({ github: e.target.value })}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
             />
           </div>
@@ -1781,14 +1812,8 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                checked={editingProject?.featured || newProject.featured}
-                onChange={(e) => {
-                  if (editingProject) {
-                    setEditingProject({ ...editingProject, featured: e.target.checked });
-                  } else {
-                    setNewProject({ ...newProject, featured: e.target.checked });
-                  }
-                }}
+                checked={form.featured ?? false}
+                onChange={(e) => updateForm({ featured: e.target.checked })}
                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
               />
               <span className="text-sm font-medium text-slate-700">Featured</span>
@@ -1796,14 +1821,8 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                checked={editingProject?.finished !== undefined ? editingProject.finished : newProject.finished}
-                onChange={(e) => {
-                  if (editingProject) {
-                    setEditingProject({ ...editingProject, finished: e.target.checked });
-                  } else {
-                    setNewProject({ ...newProject, finished: e.target.checked });
-                  }
-                }}
+                checked={form.finished ?? true}
+                onChange={(e) => updateForm({ finished: e.target.checked })}
                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
               />
               <span className="text-sm font-medium text-slate-700">Finished</span>
@@ -1813,10 +1832,11 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
         <div className="flex gap-3 mt-6">
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             <Save size={16} />
-            {editingProject ? 'Update Project' : 'Add Project'}
+            {saving ? 'Saving...' : editingProject ? 'Update Project' : 'Add Project'}
           </button>
           {editingProject && (
             <button
@@ -1847,7 +1867,7 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
                 </div>
                 <p className="text-sm text-slate-600 mb-2 line-clamp-2">{project.description}</p>
                 <div className="flex flex-wrap gap-1">
-                  {project.technologies.map((tech) => (
+                  {(project.technologies ?? []).map((tech) => (
                     <span key={tech} className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded">
                       {tech}
                     </span>
@@ -1878,7 +1898,7 @@ function ProjectsTab({ settings, editingProject, setEditingProject, onSaveProjec
 
 // Education Tab
 function EducationTab({ settings, editingEducation, setEditingEducation, onSaveEducation, onDeleteEducation }: any) {
-  const [newEducation, setNewEducation] = useState<Partial<Education>>({
+  const emptyEducation: Partial<Education> = {
     degree: '',
     institution: '',
     location: '',
@@ -1886,25 +1906,28 @@ function EducationTab({ settings, editingEducation, setEditingEducation, onSaveE
     status: 'In Progress',
     description: '',
     icon: 'GraduationCap'
-  });
+  };
+  const [newEducation, setNewEducation] = useState<Partial<Education>>(emptyEducation);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  const form = (editingEducation ?? newEducation) as Education;
+  const updateForm = (patch: Partial<Education>) => {
     if (editingEducation) {
-      onSaveEducation(editingEducation);
-    } else if (newEducation.degree && newEducation.institution) {
-      onSaveEducation({
-        ...newEducation,
-        id: 0
-      } as Education);
-      setNewEducation({
-        degree: '',
-        institution: '',
-        location: '',
-        period: '',
-        status: 'In Progress',
-        description: '',
-        icon: 'GraduationCap'
-      });
+      setEditingEducation({ ...editingEducation, ...patch });
+    } else {
+      setNewEducation({ ...newEducation, ...patch });
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const ok = await onSaveEducation(editingEducation ? form : { ...form, id: 0 } as Education);
+      if (ok && !editingEducation) {
+        setNewEducation({ ...emptyEducation });
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -1938,14 +1961,8 @@ function EducationTab({ settings, editingEducation, setEditingEducation, onSaveE
             <label className="block text-sm font-medium text-slate-700 mb-2">Degree</label>
             <input
               type="text"
-              value={editingEducation?.degree || newEducation.degree}
-              onChange={(e) => {
-                if (editingEducation) {
-                  setEditingEducation({ ...editingEducation, degree: e.target.value });
-                } else {
-                  setNewEducation({ ...newEducation, degree: e.target.value });
-                }
-              }}
+              value={form.degree ?? ''}
+              onChange={(e) => updateForm({ degree: e.target.value })}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
             />
           </div>
@@ -1953,14 +1970,8 @@ function EducationTab({ settings, editingEducation, setEditingEducation, onSaveE
             <label className="block text-sm font-medium text-slate-700 mb-2">Institution</label>
             <input
               type="text"
-              value={editingEducation?.institution || newEducation.institution}
-              onChange={(e) => {
-                if (editingEducation) {
-                  setEditingEducation({ ...editingEducation, institution: e.target.value });
-                } else {
-                  setNewEducation({ ...newEducation, institution: e.target.value });
-                }
-              }}
+              value={form.institution ?? ''}
+              onChange={(e) => updateForm({ institution: e.target.value })}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
             />
           </div>
@@ -1968,14 +1979,8 @@ function EducationTab({ settings, editingEducation, setEditingEducation, onSaveE
             <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
             <input
               type="text"
-              value={editingEducation?.location || newEducation.location}
-              onChange={(e) => {
-                if (editingEducation) {
-                  setEditingEducation({ ...editingEducation, location: e.target.value });
-                } else {
-                  setNewEducation({ ...newEducation, location: e.target.value });
-                }
-              }}
+              value={form.location ?? ''}
+              onChange={(e) => updateForm({ location: e.target.value })}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
             />
           </div>
@@ -1983,14 +1988,8 @@ function EducationTab({ settings, editingEducation, setEditingEducation, onSaveE
             <label className="block text-sm font-medium text-slate-700 mb-2">Period</label>
             <input
               type="text"
-              value={editingEducation?.period || newEducation.period}
-              onChange={(e) => {
-                if (editingEducation) {
-                  setEditingEducation({ ...editingEducation, period: e.target.value });
-                } else {
-                  setNewEducation({ ...newEducation, period: e.target.value });
-                }
-              }}
+              value={form.period ?? ''}
+              onChange={(e) => updateForm({ period: e.target.value })}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
               placeholder="e.g., 2020 - 2024 or Current"
             />
@@ -1998,14 +1997,8 @@ function EducationTab({ settings, editingEducation, setEditingEducation, onSaveE
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
             <select
-              value={editingEducation?.status || newEducation.status}
-              onChange={(e) => {
-                if (editingEducation) {
-                  setEditingEducation({ ...editingEducation, status: e.target.value as any });
-                } else {
-                  setNewEducation({ ...newEducation, status: e.target.value as any });
-                }
-              }}
+              value={form.status ?? 'In Progress'}
+              onChange={(e) => updateForm({ status: e.target.value as any })}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
             >
               <option value="In Progress">In Progress</option>
@@ -2015,14 +2008,8 @@ function EducationTab({ settings, editingEducation, setEditingEducation, onSaveE
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
             <textarea
-              value={editingEducation?.description || newEducation.description}
-              onChange={(e) => {
-                if (editingEducation) {
-                  setEditingEducation({ ...editingEducation, description: e.target.value });
-                } else {
-                  setNewEducation({ ...newEducation, description: e.target.value });
-                }
-              }}
+              value={form.description ?? ''}
+              onChange={(e) => updateForm({ description: e.target.value })}
               rows={3}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
             />
@@ -2030,14 +2017,8 @@ function EducationTab({ settings, editingEducation, setEditingEducation, onSaveE
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Icon</label>
             <select
-              value={editingEducation?.icon || newEducation.icon}
-              onChange={(e) => {
-                if (editingEducation) {
-                  setEditingEducation({ ...editingEducation, icon: e.target.value as any });
-                } else {
-                  setNewEducation({ ...newEducation, icon: e.target.value as any });
-                }
-              }}
+              value={form.icon ?? 'GraduationCap'}
+              onChange={(e) => updateForm({ icon: e.target.value as any })}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
             >
               <option value="GraduationCap">Graduation Cap</option>
@@ -2049,10 +2030,11 @@ function EducationTab({ settings, editingEducation, setEditingEducation, onSaveE
         <div className="flex gap-3 mt-6">
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             <Save size={16} />
-            {editingEducation ? 'Update Education' : 'Add Education'}
+            {saving ? 'Saving...' : editingEducation ? 'Update Education' : 'Add Education'}
           </button>
           {editingEducation && (
             <button
