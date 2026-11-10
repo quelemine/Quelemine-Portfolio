@@ -560,15 +560,28 @@ export default function AdminDashboard() {
                 if (!forgotUser.trim()) { setLoginError("Username is required"); return; }
                 setForgotBusy(true);
                 try {
-                  const res = await fetch(`/api/admin/reset-password?username=${encodeURIComponent(forgotUser.trim())}`);
-                  const data = await res.json().catch(() => ({}));
-                  if (res.ok && data.securityQuestion) {
-                    setForgotQuestion(data.securityQuestion);
+                  // Send the email OTP first; fall back to security question if email isn't configured
+                  const sendRes = await fetch('/api/admin/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'send', username: forgotUser.trim() })
+                  });
+                  const sendData = await sendRes.json().catch(() => ({}));
+                  if (sendRes.ok) {
                     setForgotMode("answer");
+                    setLoginError("");
                   } else {
-                    setLoginError("Password recovery is not set up for this account. Log in and configure it in the Password tab.");
+                    // Email not configured — try security question fallback
+                    const res = await fetch(`/api/admin/reset-password?username=${encodeURIComponent(forgotUser.trim())}`);
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok && data.securityQuestion) {
+                      setForgotQuestion(data.securityQuestion);
+                      setForgotMode("answer");
+                    } else {
+                      setLoginError(sendData.error || "Password recovery is not available for this account.");
+                    }
                   }
-                } catch { setLoginError("Could not load recovery info. Try again."); }
+                } catch { setLoginError("Could not start password recovery. Try again."); }
                 finally { setForgotBusy(false); }
               }}
             >
@@ -607,8 +620,12 @@ export default function AdminDashboard() {
               }}
             >
               <p className="text-white text-sm font-semibold text-center">Reset Password</p>
-              <p className="text-slate-300 text-xs text-center">{forgotQuestion}</p>
-              <input type="text" value={forgotAnswer} onChange={(e) => setForgotAnswer(e.target.value)} placeholder="Security answer" autoFocus className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60" />
+              <p className="text-slate-300 text-xs text-center">
+                {forgotQuestion
+                  ? forgotQuestion
+                  : "We sent a 6-digit code to your account email. Enter it below (or your security answer if configured)."}
+              </p>
+              <input type="text" value={forgotAnswer} onChange={(e) => setForgotAnswer(e.target.value)} placeholder="Verification code or security answer" autoFocus className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500/60" />
               {loginError && <p className="text-red-400 text-xs">{loginError}</p>}
               <button type="submit" disabled={forgotBusy} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors">
                 {forgotBusy ? 'Verifying...' : 'Verify & Continue'}

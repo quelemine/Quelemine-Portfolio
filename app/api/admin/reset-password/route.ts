@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { getCredentials, setCredentials, verifySecurityAnswer, verifyStoredSecret } from "@/lib/credentials";
+import { getCredentials, setCredentials, verifySecurityAnswer } from "@/lib/credentials";
+import { createOtp, verifyOtp } from "@/lib/otp";
+import { sendMail } from "@/lib/mailer";
+import { readSettings } from "@/lib/settingsStore";
 
 const MIN_PASSWORD_LENGTH = 12;
 const RESET_TOKEN_TTL_MS = 10 * 60 * 1000; // 10 minutes
@@ -106,6 +109,40 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const action = body?.action;
 
+    if (action === "send") {
+      const { username } = body || {};
+      if (!username) {
+        return NextResponse.json({ error: "Username is required" }, { status: 400 });
+      }
+      const credentials = await getCredentials();
+      const userMatch = credentials.username && timingSafeEqualString(String(username), credentials.username);
+      if (!userMatch) {
+        // Generic success — no username enumeration
+        return NextResponse.json({ success: true });
+      }
+      // Recipient: ADMIN_EMAIL env, else the public contact email from settings
+      let email = process.env.ADMIN_EMAIL || "";
+      if (!email) {
+        try {
+          const settings = await readSettings();
+          email = settings.siteContent?.contact?.email || "";
+        } catch { /* ignore */ }
+      }
+      if (!email) {
+        return NextResponse.json({ error: "Email recovery is not configured on this server" }, { status: 503 });
+      }
+      const code = createOtp(credentials.username);
+      const sent = await sendMail(
+        email,
+        "QueleMine admin password reset code",
+        `Your password reset code is: ${code}\n\nIt expires in 10 minutes. If you did not request this, ignore this email.`
+      );
+      if (!sent) {
+        return NextResponse.json({ error: "Email service is not configured (SMTP_* env vars missing)" }, { status: 503 });
+      }
+      return NextResponse.json({ success: true });
+    }
+
     if (action === "verify") {
       const { username, answer } = body || {};
       if (!username || !answer) {
@@ -113,9 +150,16 @@ export async function POST(request: Request) {
       }
       const credentials = await getCredentials();
       const userMatch = credentials.username && timingSafeEqualString(String(username), credentials.username);
-      const answerOk = userMatch ? await verifySecurityAnswer(String(answer)) : null;
-      if (answerOk !== true) {
-        return NextResponse.json({ error: "Incorrect username or security answer" }, { status: 401 });
+      if (!userMatch) {
+        return NextResponse.json({ error: "Incorrect username or verification code" }, { status: 401 });
+      }
+      // 6-digit input = email OTP; anything else = security answer fallback
+      const answerStr = String(answer).trim();
+      const ok = /^\d{6}$/.test(answerStr)
+        ? verifyOtp(credentials.username, answerStr)
+        : (await verifySecurityAnswer(answerStr)) === true;
+      if (!ok) {
+        return NextResponse.json({ error: "Incorrect username or verification code" }, { status: 401 });
       }
       const token = signResetToken(credentials.username);
       if (!token) {
